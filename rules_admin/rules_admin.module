@@ -15,47 +15,47 @@ define('RULES_ADMIN_RULE_PATH', RULES_ADMIN_PATH . '/rules');
  */
 function rules_admin_menu()
 {
-	$items = array();
-	$items[RULES_ADMIN_PATH] = array(
-		'title' => 'Rules',
+  $items = array();
+  $items[RULES_ADMIN_PATH] = array(
+    'title' => 'Rules',
     'position' => 'right',
-		'page callback' => 'drupal_get_form',
+    'page callback' => 'drupal_get_form',
     'page arguments' => array('rules_admin_reaction_overview'),
-		'access arguments' => array('administer rules'),
+    'access arguments' => array('administer rules'),
     'file' => 'rules_admin.rule_forms.inc',
-	);
-	$items[RULES_ADMIN_REACION_PATH] = array(
+  );
+  $items[RULES_ADMIN_REACION_PATH] = array(
     'title' => 'Reaction rules',
     'type' => MENU_DEFAULT_LOCAL_TASK,
-		'weight' => -1,
-	);
-	$items[RULES_ADMIN_REACION_PATH . '/add'] = array(
-    'title' => 'Add a new reaction rule',
-		'page callback' => 'drupal_get_form',
+    'weight' => -1,
+  );
+  $items[RULES_ADMIN_REACION_PATH . '/add'] = array(
+  'title' => 'Add a new reaction rule',
+  'page callback' => 'drupal_get_form',
     'page arguments' => array('rules_admin_reaction_overview'),
-		'access arguments' => array('administer rules'),
+    'access arguments' => array('administer rules'),
     'type' => MENU_LOCAL_ACTION,
     'file' => 'rules_admin.rule_forms.inc',
-		'weight' => 0,
-	);
-	$items[RULES_ADMIN_SET_PATH] = array(
+    'weight' => 0,
+  );
+  $items[RULES_ADMIN_SET_PATH] = array(
     'title' => 'Components',
-		'page callback' => 'drupal_get_form',
+    'page callback' => 'drupal_get_form',
     'page arguments' => array('rules_admin_sets_overview'),
-		'access arguments' => array('administer rules'),
+    'access arguments' => array('administer rules'),
     'type' => MENU_LOCAL_TASK,
     'file' => 'rules_admin.rule_forms.inc',
-		'weight' => 0,
-	);
-	$items[RULES_ADMIN_SET_PATH . '/add'] = array(
+    'weight' => 0,
+  );
+  $items[RULES_ADMIN_SET_PATH . '/add'] = array(
     'title' => 'Add a new component',
-		'page callback' => 'drupal_get_form',
+    'page callback' => 'drupal_get_form',
     'page arguments' => array('rules_admin_sets_overview'),
-		'access arguments' => array('administer rules'),
+    'access arguments' => array('administer rules'),
     'type' => MENU_LOCAL_ACTION,
     'file' => 'rules_admin.rule_forms.inc',
-		'weight' => 0,
-	);
+    'weight' => 0,
+  );
   $items[RULES_ADMIN_PATH .'/settings'] = array(
     'title' => 'Settings',
     'page callback' => 'drupal_get_form',
@@ -63,8 +63,7 @@ function rules_admin_menu()
     'access arguments' => array('administer rules'),
     'type' => MENU_LOCAL_TASK,
     'file' => 'rules_admin.rule_forms.inc',
-		'weight' => 1,
+  'weight' => 1,
   );
-	return $items;
+  return $items;
 }
-
