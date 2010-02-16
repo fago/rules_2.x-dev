@@ -65,27 +65,17 @@ function rules_data_data_info() {
       'label' => t('content'),
       'class' => 'RulesDataEntityWrapper',
       'parent' => 'entity',
-      'extenders' => array(
-        'RulesDataCRUDInterface' => array('class' => 'RulesDataEntityExtender')
-      ),
     ),
     'user' => array(
       'label' => t('user'),
       'class' => 'RulesDataEntityWrapper',
       'parent' => 'entity',
-      'extenders' => array(
-        'RulesDataSavableInterface' => array('class' => 'RulesDataEntityExtender'),
-        'RulesDataCreatableInterface' => array('class' => 'RulesDataEntityExtender'),
-      ),
+
     ),
     'file' => array(
       'label' => t('user'),
       'class' => 'RulesDataEntityWrapper',
       'parent' => 'entity',
-      'extenders' => array(
-        'RulesDataSavableInterface' => array('class' => 'RulesDataEntityExtender'),
-        'RulesDataDeletableInterface' => array('class' => 'RulesDataEntityExtender'),
-      ),
     ),
     'log_entry' => array(
       'label' => t('system log entry'),
@@ -172,13 +162,7 @@ function rules_data_action_info() {
   }
 
   // Get an array of types that are savable.
-  $cache = rules_get_cache();
-  foreach ($cache['data_info'] as $type => $info) {
-    if (RulesExtendable::itemFacesAs($info, 'RulesDataSavableInterface')) {
-      $types[] = $type;
-    }
-  }
-  if (!empty($types)) {
+  if ($types = array_keys(rules_entity_type_options('save callback'))) {
     $return['data_save'] = array(
       'label' => t('Save data'),
       'parameter' => array(
@@ -208,12 +192,7 @@ function rules_data_action_info() {
   }
 
   // Get an array of types that are deletable.
-  foreach ($cache['data_info'] as $type => $info) {
-    if (RulesExtendable::itemFacesAs($info, 'RulesDataDeletableInterface')) {
-      $types[] = $type;
-    }
-  }
-  if (!empty($types)) {
+  if ($types = array_keys(rules_entity_type_options('deletion callback'))) {
     $return['data_delete'] = array(
       'label' => t('Delete data'),
       'parameter' => array(
@@ -345,12 +324,15 @@ function rules_action_data_create_validate($element) {
 function rules_action_data_create_process(RulesAbstractPlugin $element) {
   $data = rules_wrap_data($data = NULL, array('type' => $element->settings['type']));
   // Add the data type's needed parameter for loading to the parameter info.
-  foreach ($data->creationParameter() as $name => $param_info) {
-    // Prefix parameter names to avoid name clashes with existing parameters.
-    $info['parameter']['param_' . $name] = $param_info;
+  foreach ($data->metadataWrapper() as $name => $info) {
+    if (!empty($info['required'])) {
+      $info += array('type' => 'text');
+      // Prefix parameter names to avoid name clashes with existing parameters.
+      $element_info['parameter']['param_' . $name] = array('type' => $info['type'], 'label' => $info['label']);
+    }
   }
-  $info['provides']['data_created']['type'] = $element->settings['type'];
-  $element->alterInfo($info);
+  $element_info['provides']['data_created']['type'] = $element->settings['type'];
+  $element->alterInfo($element_info);
 }
 
 /**
@@ -361,11 +343,8 @@ function rules_action_data_savedelete_access(RulesAbstractPlugin $element) {
     return FALSE;
   }
   if ($wrapper = $element->call('applyDataSelector', array($element->settings['data:select']))) {
-    $data = rules_wrap_data($data = NULL, array('type' => $wrapper->type()));
-    if ($data instanceof RulesDataWrapper) {
-      $op = $element->getElementName() == 'data_save' ? 'save' : 'delete';
-      return !$data->facesAs('RulesDataAccessInterface') || $data->access($op);
-    }
+    $op = $element->getElementName() == 'data_save' ? 'save' : 'delete';
+    return $wrapper->entityAccess($op);
   }
   return FALSE;
 }
@@ -381,6 +360,33 @@ function rules_data_parameter_validation(RulesAbstractPlugin $element) {
     // Modifying rules variables itself doesn't make any sense.
     throw new RulesException('Variables may not be changed, only their properties can be modified.');
   }
+}
+
+/**
+ * Options list callback for data actions.
+ *
+ * @param $type
+ *   The element type, e.g. 'action' or 'condition.
+ * @param $name
+ *   The name of the element to return options for.
+ */
+function rules_data_action_type_options($type, $name) {
+  $key = $name == 'data_fetch' ? 'base table' : 'creation callback';
+  return rules_entity_type_options($key);
+}
+
+/**
+ * Returns options containing entity types having the given key set in the info.
+ */
+function rules_entity_type_options($key) {
+  $info = entity_get_info();
+  $types = array();
+  foreach ($info as $type => $entity_info) {
+    if (!empty($entity_info[$key])) {
+      $types[$type] = $entity_info['label'];
+    }
+  }
+  return $types;
 }
 
 /**
@@ -461,7 +467,6 @@ function rules_condition_data_is_process(RulesAbstractPlugin $element) {
     }
   }
 }
-
 
 /**
  * @}

@@ -60,8 +60,7 @@ function rules_action_data_create($type) {
     // Remove the parameter name prefix 'param_'.
     $values[substr($name, 6)] = $args[$i+1];
   }
-  $data = rules_wrap_data($data = NULL, array('type' => $type));
-  $data->create($values);
+  $data = entity_metadata_entity_create($type, $values)->value();
   return array('data_created' => $data);
 }
 
@@ -88,8 +87,7 @@ function rules_action_data_delete($data, $settings, $state, $element) {
     $var->delete();
   }
   else {
-    // Create a new rules data wrapper just for deletion.
-    rules_wrap_data($data, array('type' => $wrapper->type()))->delete();
+    $wrapper->delete();
   }
 }
 
@@ -303,35 +301,3 @@ class RulesDataEntityWrapper extends RulesDataWrapper implements RulesDataIdenti
   }
 }
 
-/**
- * Extends entities to be savable, creatable and deletable.
- */
-class RulesDataEntityExtender extends RulesDataWrapper implements FacesExtenderInterface {
-
-  function implementsFaces() {
-    return array('RulesDataSavableInterface', 'RulesDataDeletableInterface', 'RulesDataCreatableInterface', 'RulesDataCRUDInterface');
-  }
-
-  function save($object) {
-    entity_metadata_entity_save($object->type, $object->get());
-  }
-
-  function delete($object) {
-    entity_metadata_entity_delete($object->type, $object->getIdentifier());
-  }
-
-  function create($values = array(), $object) {
-    $object->data = entity_metadata_entity_create($object->type, $values)->value();
-  }
-
-  function creationParameter($object) {
-    $return = array();
-    foreach ($object->metadataWrapper() as $name => $info) {
-      if (!empty($info['required'])) {
-        $info += array('type' => 'text');
-        $return[$name] = array('type' => $info['type'], 'label' => $info['label']);
-      }
-    }
-    return $return;
-  }
-}

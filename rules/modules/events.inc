@@ -220,33 +220,13 @@ function rules_data_action_access($type, $name) {
     $op = $name == 'data_save' ? 'save' : 'delete';
   }
   foreach ($types as $key => $type) {
-    $data = rules_wrap_data($data = NULL, array('type' => $type));
-    if ($data->facesAs('RulesDataAccessInterface') && !$data->access($op)) {
+    if (!entity_metadata_entity_access($op, $type)) {
       unset($types[$key]);
     }
   }
   return !empty($types);
 }
 
-/**
- * Options list callback for data actions.
- *
- * @param $type
- *   The element type, e.g. 'action' or 'condition.
- * @param $name
- *   The name of the element to return options for.
- */
-function rules_data_action_type_options($type, $name) {
-  $cache = rules_get_cache();
-  $interface = $name == 'data_fetch' ? 'RulesDataIdentifiableInterface' : 'RulesDataCreatableInterface';
-  // Get an array of types that are savable.
-  foreach ($cache['data_info'] as $type => $info) {
-    if (RulesExtendable::itemFacesAs($info, $interface)) {
-      $types[$type] = $info['label'];
-    }
-  }
-  return $types;
-}
 
 /**
  * Gets all view modes of an entity for an entity_view event.

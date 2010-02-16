@@ -99,9 +99,6 @@ function rules_comment_data_info() {
       'label' => t('comment'),
       'class' => 'RulesDataEntityWrapper',
       'parent' => 'entity',
-      'extenders' => array(
-        'RulesDataCRUDInterface' => array('class' => 'RulesDataEntityExtender')
-      ),
     ),
   );
 }

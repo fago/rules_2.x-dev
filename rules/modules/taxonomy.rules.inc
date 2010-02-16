@@ -92,17 +92,11 @@ function rules_taxonomy_data_info() {
       'label' => t('taxonomy term'),
       'class' => 'RulesDataEntityWrapper',
       'parent' => 'entity',
-      'extenders' => array(
-        'RulesDataCRUDInterface' => array('class' => 'RulesDataEntityExtender')
-      ),
     ),
     'taxonomy_vocabulary' => array(
       'label' => t('taxonomy vocabulary'),
       'class' => 'RulesDataEntityWrapper',
       'parent' => 'entity',
-      'extenders' => array(
-        'RulesDataCRUDInterface' => array('class' => 'RulesDataEntityExtender')
-      ),
     ),
   );
 }

@@ -79,29 +79,6 @@ interface RulesDataDeletableInterface {
   public function delete();
 }
 
-/**
- * Interface for any data that can be created.
- */
-interface RulesDataCreatableInterface {
-
-  /**
-   * Creates a new instance of the wrapped data type.
-   *
-   * @param $values
-   *   An array of values for properties to set. If there is entity metadata
-   *   that marks some properties as required, then they have to be passed.
-   */
-  public function create($values = array());
-
-  /**
-   * Describes the values needed for creating.
-   *
-   * @return
-   *   An array describing the entries of the $values parameter of the create()
-   *   method. Use the same array structure as known for action parameters.
-   */
-  public function creationParameter();
-}
 
 /**
  * Customize access permissions per data type. It's suggested to implement it
@@ -124,7 +101,7 @@ interface RulesDataAccessInterface {
 /**
  * Combines the above interfaces to a CRUD Interface.
  */
-interface RulesDataCRUDInterface extends RulesDataSavableInterface, RulesDataDeletableInterface, RulesDataCreatableInterface {
+interface RulesDataCRUDInterface extends RulesDataSavableInterface, RulesDataDeletableInterface {
 
 }
 
@@ -318,14 +295,14 @@ class RulesDataWrapper extends RulesExtendable implements Serializable {
    * Returns whether this data is savable
    */
   public function isSavable() {
-    return $this->facesAs('RulesDataSavableInterface');
+    return TRUE;
   }
 
   /**
    * Returns whether this data is identifiable
    */
   public function isIdentifiable() {
-    return $this->facesAs('RulesDataIdentifiableInterface');
+    return isset($this->info['parent']) && $this->info['parent'] == 'entity';
   }
 
   /**
@@ -455,5 +432,13 @@ class RulesDataWrapper extends RulesExtendable implements Serializable {
     list($this->data, $this->info, $this->skipSetUp, $this->itemName, $this->parameter) = unserialize($serialized);
     $this->type = $this->itemName;
     parent::__wakeup();
+  }
+
+  public function save() {
+    return $this->metadataWrapper()->save();
+  }
+
+  public function delete() {
+    return $this->metadataWrapper()->delete();
   }
 }
