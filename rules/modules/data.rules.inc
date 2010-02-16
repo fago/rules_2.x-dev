@@ -122,7 +122,7 @@ function rules_data_action_info() {
           'description' => t('Specify the type of the data that should be fetched.'),
           'restriction' => 'input',
          ),
-         // Further needed parameter depends on the type.
+         'id' => array('type' => 'unknown', 'label' => t('Identifier')),
       ),
       'provides' => array(
         'data_fetched' => array('type' => 'unknown', 'label' => t('Fetched data')),
@@ -281,9 +281,8 @@ function rules_action_data_createfetch_access(RulesAbstractPlugin $element) {
   if (!RulesAbstractPluginDefaults::access($element)) {
     return FALSE;
   }
-  $data = rules_wrap_data($data = NULL, array('type' => $element->settings['type']));
   $op = $element->getElementName() == 'data_create' ? 'create' : 'view';
-  return !$data->facesAs('RulesDataAccessInterface') || $data->access($op);
+  return entity_metadata_entity_access($op, $element->settings['type']);
 }
 
 /**
@@ -299,14 +298,21 @@ function rules_action_data_fetch_validate($element) {
  * Custom process callback for data fetch action.
  */
 function rules_action_data_fetch_process(RulesAbstractPlugin $element) {
-  $data = rules_wrap_data($data = NULL, array('type' => $element->settings['type']));
-  // Add the data type's needed parameter for loading to the parameter info.
-  foreach ($data->loadParameter() as $name => $param_info) {
-    // Prefix parameter names to avoid name clashes with existing parameters.
-    $info['parameter']['param_' . $name] = $param_info;
+  $info = entity_get_info($element->settings['type']);
+
+  // Fix the type of the identifier.
+  $element_info['parameter']['id']['type'] = isset($info['object keys']['name']) ? 'text' : 'integer';
+
+  // Add an optional revision parameter, if supported.
+  if (isset($info['object keys']['revision'])) {
+    $element_info['parameter']['revision_id'] = array(
+      'type' => 'integer',
+      'label' => t('Revision identifier'),
+      'optional' => TRUE,
+    );
   }
-  $info['provides']['data_fetched']['type'] = $element->settings['type'];
-  $element->alterInfo($info);
+  $element_info['provides']['data_fetched']['type'] = $element->settings['type'];
+  $element->alterInfo($element_info);
 }
 
 /**
@@ -322,9 +328,9 @@ function rules_action_data_create_validate($element) {
  * Custom process callback for data create action.
  */
 function rules_action_data_create_process(RulesAbstractPlugin $element) {
-  $data = rules_wrap_data($data = NULL, array('type' => $element->settings['type']));
+  $wrapper = entity_metadata_wrapper($element->settings['type']);
   // Add the data type's needed parameter for loading to the parameter info.
-  foreach ($data->metadataWrapper() as $name => $info) {
+  foreach ($wrapper as $name => $info) {
     if (!empty($info['required'])) {
       $info += array('type' => 'text');
       // Prefix parameter names to avoid name clashes with existing parameters.

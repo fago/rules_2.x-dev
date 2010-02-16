@@ -795,7 +795,7 @@ class RulesIntegrationTestCase extends DrupalWebTestCase {
 
     $node = $this->drupalCreateNode(array('type' => 'page', 'sticky' => 0, 'status' => 0));
     $rule = rule();
-    $rule->action('data_fetch', array('type' => 'node', 'param_id' => $node->nid, 'data_fetched:var' => 'node'));
+    $rule->action('data_fetch', array('type' => 'node', 'id' => $node->nid, 'data_fetched:var' => 'node'));
     $rule->action('data_save', array('data:select' => 'node', 'immediate' => TRUE));
     $rule->action('data_delete', array('data:select' => 'node'));
     $rule->access();
@@ -807,7 +807,7 @@ class RulesIntegrationTestCase extends DrupalWebTestCase {
     $pos = ($pos !== FALSE) ? strpos($text, RulesTestCase::t('Saved variable %node of type %node.', array('node')), $pos) : FALSE;
     $pos = ($pos !== FALSE) ? strpos($text, RulesTestCase::t('Evaluating the action %data_delete.', array('data_delete')), $pos) : FALSE;
     $this->assertTrue($pos !== FALSE, 'Data has been fetched, saved and deleted.');
-    //debug(RulesLog::logger()->render());
+    debug(RulesLog::logger()->render());
   }
 
   /**

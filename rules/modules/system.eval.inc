@@ -82,7 +82,7 @@ function _rules_action_drupal_goto_handler($variables) {
 /**
  * Wraps system log entries of hook_watchdog().
  */
-class RulesDataLogEntryWrapper extends RulesDataWrapper implements RulesDataMetadataWrapperInterface {
+class RulesDataLogEntryWrapper extends RulesDataWrapper  {
 
   /**
    * Specify metadata for the log entry and return a metadata wrapper.

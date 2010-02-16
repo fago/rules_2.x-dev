@@ -548,13 +548,13 @@ abstract class RulesPlugin extends RulesExtendable implements EntityAPIInterface
     $parts = explode(':', $selector, 2);
     // Use the evaluation state to get the wrapper.
     if (isset($state) && ($vars = &$state['variables']) && isset($vars[$parts[0]]) && ($vars[$parts[0]] instanceof RulesDataWrapper)) {
-      if ($vars[$parts[0]]->facesAs('RulesDataMetadataWrapperInterface')) {
+      if (method_exists($vars[$parts[0]], 'metadataWrapper')) {
         $wrapper = $vars[$parts[0]]->metadataWrapper($state);
       }
     }
     // If there is no evaluation state yet, so make use the variable info.
     elseif (!isset($state) && ($vars = $this->availableVariables()) && isset($vars[$parts[0]]['type'])) {
-      if (($data = rules_wrap_data($data = NULL, $vars[$parts[0]], TRUE)) && $data->facesAs('RulesDataMetadataWrapperInterface')) {
+      if (($data = rules_wrap_data($data = NULL, $vars[$parts[0]], TRUE)) && method_exists($data, 'metadataWrapper')) {
         $wrapper = $data->metadataWrapper();
       }
     }

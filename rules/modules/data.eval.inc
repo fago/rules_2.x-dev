@@ -31,21 +31,18 @@ function rules_action_data_set($data, $value, $settings, $state, $element) {
 /**
  * Action: Fetch data
  */
-function rules_action_data_fetch($type) {
-  $args = func_get_args();
-  // Get the arguments for the loadParameter().
-  // Settings is always the forth last parameter that is passed.
-  $settings = $args[count($args)-4];
-  $ids = array();
-  foreach (array_keys($settings['#info']['parameter']) as $i => $name) {
-    // Remove the parameter name prefix 'param_'.
-    $ids[substr($name, 6)] = $args[$i+1];
+function rules_action_data_fetch($type, $id, $revision) {
+  $info = entity_get_info($type);
+
+  // Support the revision parameter, if applicable.
+  if (isset($info['object keys']['revision'])) {
+    $conditions = array($info['object keys']['revision'] => $revision);
   }
-  // If it's a single id, remove the array.
-  $ids = count($ids) == 1 ? reset($ids) : $ids;
-  // Create a data wrapper, so the actually data is lazy loaded once needed.
-  $data = rules_wrap_data($ids, array('type' => $type, 'loaded' => FALSE));
-  return array('data_fetched' => $data);
+  $entity = reset(entity_load($type, array($id), isset($conditions) ? $conditions : array()));
+  if (!$entity) {
+    throw new RulesException('Unable to load @entity with id "@id"', array('@id' => $id, '@entity' => $type));
+  }
+  return array('data_fetched' => $entity);
 }
 
 /**
@@ -187,7 +184,7 @@ class RulesURIWrapper extends RulesTextWrapper {
 /**
  * Wraps lists, which in the end are numerically indexed arrays.
  */
-class RulesDataListWrapper extends RulesDataWrapper implements RulesDataMetadataWrapperInterface {
+class RulesDataListWrapper extends RulesDataWrapper {
 
   protected $itemName = 'list';
 
@@ -217,7 +214,7 @@ class RulesDataListWrapper extends RulesDataWrapper implements RulesDataMetadata
 /**
  * Defines a generic wrapper for all core entities.
  */
-class RulesDataEntityWrapper extends RulesDataWrapper implements RulesDataIdentifiableInterface, RulesDataAccessInterface {
+class RulesDataEntityWrapper extends RulesDataWrapper {
 
   /**
    * Returns the available parameter for entities, which are the known bundles.
@@ -232,57 +229,6 @@ class RulesDataEntityWrapper extends RulesDataWrapper implements RulesDataIdenti
   }
 
   protected $itemName = 'entity';
-
-  /**
-   * Implements RulesDataIdentifiableInterface.
-   */
-  function getIdentifier() {
-    $info = entity_get_info($this->type);
-    $name_key = isset($info['object keys']['name']) ? $info['object keys']['name'] : $info['object keys']['id'];
-    $entity = $this->get();
-    if (!isset($entity->$name_key)) {
-      throw new RulesException('@entity is unsaved, thus there is no identifier yet.', array('@entity' => drupal_ucfirst($this->type)));
-    }
-    return $entity->$name_key;
-  }
-
-  /**
-   * Implements RulesDataIdentifiableInterface.
-   */
-  function load($ids) {
-    if (isset($ids[1])) {
-      $info = entity_get_info($this->type);
-      $conditions = array($info['object keys']['revision'] => $ids[1]);
-    }
-    $id = is_array($ids) ? reset($ids) : $ids;
-    $result = entity_load($this->type, array($id), isset($conditions) ? $conditions : array());
-    if (empty($result[$id])) {
-      throw new RulesException('Unable to load @entity with id "@id"', array('@id' => $id, '@entity' => $this->type));
-    }
-    return $result[$id];
-  }
-
-  function loadParameter() {
-    $info = entity_get_info($this->type);
-    $type = isset($info['object keys']['name']) ? 'text' : 'integer';
-    $return = array('id' => array('type' => $type, 'label' => t('Identifier')));
-    if (isset($info['object keys']['revision'])) {
-      $return += array('revision_id' => array(
-        'type' => 'integer',
-        'label' => t('Revision identifier'),
-        'optional' => TRUE,
-      ));
-    }
-    return $return;
-  }
-
-  /**
-   * Implements RulesDataAccessInterface.
-   * Incorporate access permissions defined by the entity metadata module.
-   */
-  function access($op) {
-    return entity_metadata_entity_access($op, $this->type);
-  }
 
   /**
    * Implements RulesDataMetadataWrapperInterface.
