@@ -29,7 +29,7 @@ class RulesActionUI extends FacesExtender {
 }
 
 function theme_rules_element_form($form) {
-  
+
 }
 
 class RulesReactionRuleUI extends FacesExtender {
@@ -99,9 +99,9 @@ class RulesReactionRuleUI extends FacesExtender {
       '#type' => 'fieldset',
       '#title' => t('Do:'),
     );
-    
+
     foreach ($rule->actions() as $id => $action) {
-      $action->form(&$form['elements']['actions'][$id], &$form_state, array());
+      $action->form($form['elements']['actions'][$id], $form_state);
     }
 
     $form['elements']['actions']['add'] = array(
@@ -109,7 +109,7 @@ class RulesReactionRuleUI extends FacesExtender {
     );
 
     $form['submit'] = array(
-      '#type' => 'submit', 
+      '#type' => 'submit',
       '#value' => t('Save Changes'),
     );
     $form_state['rules_ui_rule'] = &$this;
@@ -127,7 +127,7 @@ class RulesReactionRuleUI extends FacesExtender {
   }
 
   public function form_submit(&$form, &$form_state, $rule) {
-    drupal_set_message('Rule "' . $this->rule->label . '" saved');
+    drupal_set_message('Rule "' . $rule->label . '" saved');
     $rule->save();
   }
 

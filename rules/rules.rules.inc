@@ -11,6 +11,8 @@
  */
 foreach (rules_core_modules() as $module) {
   module_load_include('inc', 'rules', "modules/$module.rules");
+  //TODO: Temporary hack. Force include to be included.
+  module_load_include('inc', 'rules', 'modules/events');
 }
 
 /**

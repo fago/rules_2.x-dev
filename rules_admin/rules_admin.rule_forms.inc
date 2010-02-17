@@ -74,9 +74,9 @@ function rules_admin_settings($form, &$form_state) {
  * Edit a reaction rule
  */
 function rules_admin_form_edit_rule($form, &$form_state, $rule = NULL) {
-  $rule->form($form, &$form_state);
+  $rule->form($form, $form_state);
   $form_state['rules'][$rule->name] = &$rule;
-  $form['#validate'][] = array('rules_admin_form_edit_rule_validate');
+  $form['#validate'][] = 'rules_admin_form_edit_rule_validate';
   $form['#submit'][] = 'rules_admin_form_edit_rule_submit';
   return $form;
 }
