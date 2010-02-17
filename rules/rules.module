@@ -332,6 +332,10 @@ function rules_rules_plugin_info() {
         'RulesPluginImplInterface' => array(
           'class' => 'RulesAbstractPluginDefaults',
         ),
+        'RulesPluginUiInterface' => array(
+          'class' => 'RulesActionUI',
+        )
+        
       ),
     ),
     'or' => array(
@@ -343,7 +347,7 @@ function rules_rules_plugin_info() {
     'rule' => array(
       'class' => 'Rule',
       'embeddable' => TRUE,
-      'extenders' => array (
+      'extenders' => array(
         //Interfaces => array( class => className / methods => array of Methods)
       ),
       'overrides' => array(
@@ -356,6 +360,11 @@ function rules_rules_plugin_info() {
     'reaction rule' => array(
       'class' => 'RulesReactionRule',
       'embeddable' => FALSE,
+      'extenders' => array(
+        'RulesPluginUiInterface' => array(
+          'class' => 'RulesReactionRuleUI',
+        ),
+      ),
     ),
     'event set' => array(
       'class' => 'RulesEventSet',

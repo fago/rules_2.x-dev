@@ -42,23 +42,53 @@ function rules_admin_reaction_overview($form, &$form_state) {
   $conditions = array('event' => $event, 'plugin' => 'reaction rule', 'active' => TRUE);
   $form['active']['table'] = rules_admin_overview_table(array_filter($conditions));
 
+
+  $form['inactive'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Inactive rules'),
+  );
+  $conditions = array('event' => $event, 'plugin' => 'reaction rule');
+  $form['inactive']['table'] = rules_admin_overview_table((array_filter($conditions) + array('active' => FALSE)));
+
   $form_state['rebuild'] = TRUE;
+
   return $form;
 }
 /**
  * Rules overview
  */
-function rules_admin_sets_overview(&$form_state) {
+function rules_admin_components_overview($form, &$form_state) {
   drupal_set_message("Rules admin set overview");
-  $form = array();
   return $form;
 }
 
 /**
  * Define the rule settings
  */
-function rules_admin_settings(&$form_state) {
+function rules_admin_settings($form, &$form_state) {
   drupal_set_message("Rules admin settings");
-  $form = array();
   return $form;
+}
+
+/**
+ * Edit a reaction rule
+ */
+function rules_admin_form_edit_rule($form, &$form_state, $rule = NULL) {
+  $rule->form(&$form, &$form_state, array());
+  $form_state['rules'][$rule->name] = &$rule;
+  $form['#validate'][] = array('rules_admin_form_edit_rule_validate');
+  $form['#submit'][] = 'rules_admin_form_edit_rule_submit';
+  return $form;
+}
+
+function rules_admin_form_edit_rule_validate($form, &$form_state) {
+  foreach ($form_state['rules'] as $rule) {
+    $rule->form_validate($form, $form_state);
+  }
+}
+
+function rules_admin_form_edit_rule_submit($form, &$form_state) {
+  foreach ($form_state['rules'] as $rule) {
+    $rule->form_submit($form, $form_state);
+  }
 }

@@ -43,25 +43,24 @@ function rules_admin_overview_table($conditions = array()) {
   $rules = rules_config_load_multiple(FALSE, $conditions);
   $rows = array();
   $events = rules_fetch_data('event_info');
-  $max_events = 1;
 
   foreach ($rules as $name => $rule) {
-    $path = RULES_ADMIN_PATH . '/' . $name;
+    $path = RULES_ADMIN_RULE_PATH . '/' . $name;
     $row = array();
-    $row[] = $rule->label;
+    $row[] = l($rule->label, $path);
 
     $rule_events = array();
 
-    foreach ($rule->events() as $name)
+    foreach ($rule->events() as $ename)
     {
-      $rule_events[] = $events[$name]['label'];
+      $rule_events[] = $events[$ename]['label'];
     }
       $row[] = implode(", ", $rule_events);
       $row[] = l(t('clone'), $path . '/clone', array(), drupal_get_destination());
-    $row[] = l(t('delete'), $path . '/delete', array(), drupal_get_destination());
+      $row[] = l(t('delete'), $path . '/delete', array(), drupal_get_destination());
       $rows[] = $row;
   }
-  $header = array(t('Label'), array('data' => t('Event'), 'colspan' => $max_events), array('data' => t('Operations'), 'colspan' => '2'));
+  $header = array(t('Label'), array('data' => t('Event'), 'colspan' => 1), array('data' => t('Operations'), 'colspan' => '2'));
 
   $table = array(
     '#theme' => 'table',
