@@ -6,7 +6,7 @@
  *   Implements rule management and configuration screens.
  */
 
-require_once('rules_admin.inc');
+module_load_include('inc', 'rules_admin');
 
 /**
  * Reaction rules overview
