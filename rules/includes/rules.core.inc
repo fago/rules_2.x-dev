@@ -635,6 +635,14 @@ abstract class RulesPlugin extends RulesExtendable {
   public function destroy() {
     $this->parent = NULL;
   }
+
+  /**
+   * Seamlessy invokes the method implemented via faces without having to think
+   * about references.
+   */
+  public function form(&$form, &$form_state, array $options = array()) {
+    $this->__call('form', array(&$form, &$form_state, $options));
+  }
 }
 
 

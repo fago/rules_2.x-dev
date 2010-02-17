@@ -13,8 +13,7 @@ define('RULES_ADMIN_RULE_PATH', RULES_ADMIN_PATH . '/rules');
 /**
  * Implementation of hook_menu()
  */
-function rules_admin_menu()
-{
+function rules_admin_menu() {
   $items = array();
   $items[RULES_ADMIN_PATH] = array(
     'title' => 'Rules',
