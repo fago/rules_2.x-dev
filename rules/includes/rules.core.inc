@@ -474,7 +474,7 @@ abstract class RulesPlugin extends RulesExtendable implements EntityAPIInterface
         }
         // If we have enough metadata, check whether the types match.
         if ($wrapper = $this->applyDataSelector($select)) {
-          if (!RulesDataWrapper::typesMatch($wrapper->type(), $info['type'])) {
+          if (!RulesDataWrapper::typesMatch($wrapper->info(), $info)) {
             throw new RulesException("%plugin: The data type returned by the selector %select does not match the parameter's requirement.", array('%plugin' => $this->getPluginName(), '%select' => $select));
           }
         }
@@ -548,13 +548,11 @@ abstract class RulesPlugin extends RulesExtendable implements EntityAPIInterface
     $parts = explode(':', $selector, 2);
     // Use the evaluation state to get the wrapper.
     if (isset($state) && ($vars = &$state['variables']) && isset($vars[$parts[0]]) && ($vars[$parts[0]] instanceof RulesDataWrapper)) {
-      if (method_exists($vars[$parts[0]], 'metadataWrapper')) {
-        $wrapper = $vars[$parts[0]]->metadataWrapper($state);
-      }
+      $wrapper = $vars[$parts[0]]->metadataWrapper($state);
     }
     // If there is no evaluation state yet, so make use the variable info.
     elseif (!isset($state) && ($vars = $this->availableVariables()) && isset($vars[$parts[0]]['type'])) {
-      if (($data = rules_wrap_data($data = NULL, $vars[$parts[0]], TRUE)) && method_exists($data, 'metadataWrapper')) {
+      if (($data = rules_wrap_data($data = NULL, $vars[$parts[0]], TRUE))) {
         $wrapper = $data->metadataWrapper();
       }
     }
@@ -572,26 +570,26 @@ abstract class RulesPlugin extends RulesExtendable implements EntityAPIInterface
   }
 
   /**
-   * Returns the type of the configured argument.
+   * Returns info about the configured argument.
    *
    * @return
    *   The determined type. If it's not known NULL is returned.
    */
-  protected function getArgumentType($name) {
+  protected function getArgumentInfo($name) {
     $vars = $this->availableVariables();
     if (isset($this->settings[$name . ':select']) && isset($vars[$this->settings[$name . ':select']])) {
-      return $vars[$this->settings[$name . ':select']]['type'];
+      return $vars[$this->settings[$name . ':select']];
     }
     elseif (isset($this->settings[$name . ':select'])) {
       if ($wrapper = $this->applyDataSelector($this->settings[$name . ':select'])) {
-        return $wrapper->type;
+        return $wrapper->info();
       }
     }
     elseif (isset($this->settings[$name . ':type'])) {
-      return $this->settings[$name . ':type'];
+      return array('type' => $this->settings[$name . ':type']);
     }
     elseif (!isset($this->settings[$name]) && isset($vars[$name])) {
-      return $vars[$name]['type'];
+      return $vars[$name];
     }
   }
 

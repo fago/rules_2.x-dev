@@ -14,7 +14,7 @@
  */
 function rules_action_data_set($data, $value, $settings, $state, $element) {
   $wrapper = $state['execution arguments']['data'];
-  $wrapper = $wrapper instanceof RulesDataMetadataWrapperInterface ? $wrapper->metadataWrapper($state) : $wrapper;
+  $wrapper = $wrapper instanceof RulesDataWrapper ? $wrapper->metadataWrapper($state) : $wrapper;
   try {
     // Update the value first then save changes, if possible.
     $wrapper->set($value);
@@ -35,7 +35,7 @@ function rules_action_data_fetch($type, $id, $revision) {
   $info = entity_get_info($type);
 
   // Support the revision parameter, if applicable.
-  if (isset($info['object keys']['revision'])) {
+  if (isset($info['object keys']['revision']) && isset($revision)) {
     $conditions = array($info['object keys']['revision'] => $revision);
   }
   $entity = reset(entity_load($type, array($id), isset($conditions) ? $conditions : array()));
@@ -67,7 +67,7 @@ function rules_action_data_create($type) {
 function rules_action_data_save($data, $immediate = FALSE, $settings, $state, $element) {
   // Usually rules cares for saving, however it won't happen immediately.
   if ($immediate && $wrapper = $state['execution arguments']['data']) {
-    $wrapper = $wrapper instanceof RulesDataMetadataWrapperInterface ? $wrapper->metadataWrapper($state) : $wrapper;
+    $wrapper = $wrapper instanceof RulesDataWrapper ? $wrapper->metadataWrapper($state) : $wrapper;
     RulesDataWrapper::metadataWrapperSaveChanges($wrapper, $state, $immediate);
     // We have already saved, so don't do it again.
     return FALSE;
@@ -79,7 +79,7 @@ function rules_action_data_save($data, $immediate = FALSE, $settings, $state, $e
  */
 function rules_action_data_delete($data, $settings, $state, $element) {
   $wrapper = $state['execution arguments']['data'];
-  $wrapper = $wrapper instanceof RulesDataMetadataWrapperInterface ? $wrapper->metadataWrapper($state) : $wrapper;
+  $wrapper = $wrapper instanceof RulesDataWrapper ? $wrapper->metadataWrapper($state) : $wrapper;
   if ($var = $state['wrapper map']->getVariable($wrapper)) {
     $var->delete();
   }
@@ -230,9 +230,7 @@ class RulesDataEntityWrapper extends RulesDataWrapper {
 
   protected $itemName = 'entity';
 
-  /**
-   * Implements RulesDataMetadataWrapperInterface.
-   */
+
   public function metadataWrapper(array $state = NULL) {
     if (!isset($this->wrapper)) {
       $data = &$this->get($state);

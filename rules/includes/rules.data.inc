@@ -55,32 +55,41 @@ class RulesDataWrapper extends RulesExtendable implements Serializable {
   /**
    * Returns whether the type match. They match if type1 is compatible to type2.
    *
-   * @param $type1
+   * @param $var_info
    *   The name of the type to check for whether it is compatible to type2.
-   * @param $type2
+   * @param $param_info
    *   The type expression to check for.
    * @return
    *   Whether the types match.
    */
-  public static function typesMatch($type1, $type2) {
-    if ($type2 == '*' || $type2 == 'unknown' || $type1 == $type2) {
-      return TRUE;
-    }
-    // Multiple types may be specified using an array.
-    $types = is_array($type2) ? $type2 : array($type2);
-    if (in_array($type1, $types)) {
-      return TRUE;
-    }
-    // In case $type1 is parametrized, try again with the unparametrized type.
-    if ((list($type, $parameter) = self::typeExtractParameter($type1)) && $parameter) {
-      return self::typesMatch($type, $type2);
-    }
-    // Check for sub-type relationships.
-    $cache = &rules_get_cache();
-    self::typeCalcAncestors($cache, $type1);
+  public static function typesMatch($var_info, $param_info) {
+    $var_type = $var_info['type'];
+    $param_type = $param_info['type'];
 
-    // If one of the types is an ancestor return TRUE.
-    return (bool)array_intersect_key($cache['data_info'][$type1]['ancestors'], array_flip($types));
+    if ($param_type == '*' || $param_type == 'unknown') {
+      return TRUE;
+    }
+
+    if ($var_type == $param_type) {
+      // Make sure the bundle matches, if specified by the parameter.
+      return !isset($param_info['bundles']) || isset($var_info['bundle']) && in_array($var_info['bundle'], $param_info['bundles']);
+    }
+
+    // Parameters may specify multiple types using an array.
+    $valid_types = is_array($param_type) ? $param_type : array($param_type);
+    if (in_array($var_type, $valid_types)) {
+      return TRUE;
+    }
+
+    // Check for sub-type relationships.
+    if (!isset($param_info['bundles'])) {
+      $cache = &rules_get_cache();
+      self::typeCalcAncestors($cache, $var_type);
+
+      // If one of the types is an ancestor return TRUE.
+      return (bool)array_intersect_key($cache['data_info'][$var_type]['ancestors'], array_flip($valid_types));
+    }
+    return FALSE;
   }
 
   protected static function typeCalcAncestors(&$cache, $type) {
@@ -92,22 +101,11 @@ class RulesDataWrapper extends RulesExtendable implements Serializable {
         // Add all parent ancestors to our own ancestors.
         $cache['data_info'][$type]['ancestors'] += $cache['data_info'][$parent]['ancestors'];
       }
+      // For special lists like list<node> add in "list" as valid parent.
+      if (entity_metadata_list_extract_type($type)) {
+        $cache['data_info'][$type]['ancestors']['list'] = TRUE;
+      }
     }
-  }
-
-  /**
-   * Splits up the given type of the form "type<parameter>" into the type and
-   * the parameter.
-   *
-   * @return
-   *   An array where the first entry is the type without the parameter and the
-   *   second is the parameter, or FALSE if there is none.
-   */
-  public static function typeExtractParameter($type) {
-    if (($pos = strpos($type, '<')) && $type[strlen($type)-1] == '>') {
-      return array(substr($type, 0, $pos), substr($type, $pos + 1, -1));
-    }
-    return array($type, FALSE);
   }
 
   /**
@@ -167,7 +165,7 @@ class RulesDataWrapper extends RulesExtendable implements Serializable {
       'handler' => FALSE,
       'loaded' => empty($info['handler']),
     );
-    list($this->type, $this->parameter) = self::typeExtractParameter($this->info['type']);
+    $this->type = $this->info['type'];
     $this->itemName = $this->type;
     $this->setUp();
   }
@@ -200,7 +198,8 @@ class RulesDataWrapper extends RulesExtendable implements Serializable {
    * Returns whether this data is identifiable
    */
   public function isIdentifiable() {
-    return isset($this->info['parent']) && $this->info['parent'] == 'entity';
+    $info = entity_get_info();
+    return isset($info[$this->type]);
   }
 
   /**
@@ -240,7 +239,7 @@ class RulesDataWrapper extends RulesExtendable implements Serializable {
       $this->info['loaded'] = TRUE;
     }
     elseif (!$this->info['loaded'] && isset($this->data) && $this->isIdentifiable()) {
-      $return = $this->load($this->data);
+      $return = reset(entity_load($this->type, array($this->data)));
       // First unset the data, so we prevent changing a referenced variable.
       unset($this->data);
       $this->data = $return;
@@ -333,10 +332,18 @@ class RulesDataWrapper extends RulesExtendable implements Serializable {
   }
 
   public function save() {
-    return $this->metadataWrapper()->save();
+    if ($w = $this->metadataWrapper()) {
+      return $w->save();
+    }
   }
 
   public function delete() {
-    return $this->metadataWrapper()->delete();
+    if ($w = $this->metadataWrapper()) {
+      return $w->delete();
+    }
+  }
+
+  function metadataWrapper() {
+    return NULL;
   }
 }
