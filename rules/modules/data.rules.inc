@@ -22,64 +22,23 @@ function rules_data_file_info() {
  */
 function rules_data_data_info() {
   return array(
-    'text' => array(
-      'label' => t('text'),
-      'class' => 'RulesTextWrapper',
-    ),
-   'decimal' => array(
-      'label' => t('decimal number'),
-      'class' => 'RulesDecimalWrapper',
-      'parent' => 'text',
-    ),
-   'integer' => array(
-      'label' => t('integer'),
-      'class' => 'RulesIntegerWrapper',
-      'parent' => 'decimal',
-    ),
-   'date' => array(
-      'label' => t('date'),
-      'class' => 'RulesDateWrapper',
-    ),
-   'duration' => array(
-      'label' => t('duration'),
-      'class' => 'RulesDurationWrapper',
-    ),
-   'boolean' => array(
-      'label' => t('truth value'),
-      'class' => 'RulesBooleanWrapper',
-    ),
-   'uri' => array(
-      'label' => t('URI'),
-      'class' => 'RulesURIWrapper',
-      'parent' => 'text',
-    ),
-   'list' => array(
-      'label' => t('list'),
-      'class' => 'RulesDataListWrapper',
-    ),
    'entity' => array(
       'label' => t('any entity'),
-      'class' => 'RulesDataEntityWrapper',
     ),
     'node' => array(
       'label' => t('content'),
-      'class' => 'RulesDataEntityWrapper',
       'parent' => 'entity',
+      'wrap' => TRUE,
     ),
     'user' => array(
       'label' => t('user'),
-      'class' => 'RulesDataEntityWrapper',
       'parent' => 'entity',
-
+      'wrap' => TRUE,
     ),
     'file' => array(
       'label' => t('user'),
-      'class' => 'RulesDataEntityWrapper',
       'parent' => 'entity',
-    ),
-    'log_entry' => array(
-      'label' => t('system log entry'),
-      'class' => 'RulesDataLogEntryWrapper',
+      'wrap' => TRUE,
     ),
   );
 }
@@ -170,7 +129,6 @@ function rules_data_action_info() {
           'type' => $types,
           'label' => t('Data to save'),
           'description' => t('The data, which should be saved permanently.'),
-          'save' => TRUE,
           'restriction' => 'selector',
          ),
          'immediate' => array(
@@ -350,7 +308,7 @@ function rules_action_data_savedelete_access(RulesAbstractPlugin $element) {
   }
   if ($wrapper = $element->call('applyDataSelector', array($element->settings['data:select']))) {
     $op = $element->getElementName() == 'data_save' ? 'save' : 'delete';
-    return $wrapper->entityAccess($op);
+    return $wrapper instanceof EntityDrupalWrapper && $wrapper->entityAccess($op);
   }
   return FALSE;
 }

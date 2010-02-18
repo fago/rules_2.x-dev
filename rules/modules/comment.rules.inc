@@ -97,8 +97,8 @@ function rules_comment_data_info() {
   return array(
     'comment' => array(
       'label' => t('comment'),
-      'class' => 'RulesDataEntityWrapper',
       'parent' => 'entity',
+      'wrap' => TRUE,
     ),
   );
 }

@@ -14,7 +14,6 @@
  */
 function rules_action_data_set($data, $value, $settings, $state, $element) {
   $wrapper = $state->executionArguments['data'];
-  $wrapper = $wrapper instanceof RulesDataWrapper ? $wrapper->metadataWrapper($state) : $wrapper;
   try {
     // Update the value first then save changes, if possible.
     $wrapper->set($value);
@@ -24,8 +23,9 @@ function rules_action_data_set($data, $value, $settings, $state, $element) {
   }
   $info = $wrapper->info();
   // We always have to save the changes in the parent entity. E.g. when the node
-  // author is changed, we don't want to save the author but the node.
-  RulesDataWrapper::metadataWrapperSaveChanges($info['parent'], $state);
+  // author is changed, we don't want to save the author but the node. So use
+  // the parent wrapper and also cut off the last part of the selector.
+  $state->saveChanges(implode(':', explode(':', $settings['data:select'], -1)), $info['parent']);
 }
 
 /**
@@ -65,13 +65,8 @@ function rules_action_data_create($type) {
  * Action: Save data
  */
 function rules_action_data_save($data, $immediate = FALSE, $settings, $state, $element) {
-  // Usually rules cares for saving, however it won't happen immediately.
-  if ($immediate && $wrapper = $state->executionArguments['data']) {
-    $wrapper = $wrapper instanceof RulesDataWrapper ? $wrapper->metadataWrapper($state) : $wrapper;
-    RulesDataWrapper::metadataWrapperSaveChanges($wrapper, $state, $immediate);
-    // We have already saved, so don't do it again.
-    return FALSE;
-  }
+  $wrapper = $state->executionArguments['data'];
+  $state->saveChanges($settings['data:select'], $wrapper, $immediate);
 }
 
 /**
@@ -79,13 +74,7 @@ function rules_action_data_save($data, $immediate = FALSE, $settings, $state, $e
  */
 function rules_action_data_delete($data, $settings, $state, $element) {
   $wrapper = $state->executionArguments['data'];
-  $wrapper = $wrapper instanceof RulesDataWrapper ? $wrapper->metadataWrapper($state) : $wrapper;
-  if ($var = $state->wrapperMap->getVariable($wrapper)) {
-    $var->delete();
-  }
-  else {
-    $wrapper->delete();
-  }
+  $wrapper->delete();
 }
 
 /**
@@ -179,69 +168,5 @@ class RulesURIWrapper extends RulesTextWrapper {
   // TODO: use input evaluator in input form
 
   protected $itemName = 'uri';
-}
-
-/**
- * Wraps lists, which in the end are numerically indexed arrays.
- */
-class RulesDataListWrapper extends RulesDataWrapper {
-
-  protected $itemName = 'list';
-
-  public static function availableTypeParameter($type = 'list') {
-    $cache = rules_get_cache();
-    foreach ($cache['data_info'] as $name => $info) {
-      $return[$name] = t('list of @item-type items', array('@item-type' => $info['label']));
-    }
-    return isset($return) ? $return : array();
-  }
-
-  /**
-   * Override to pass a parametrized type as the metadata wrapper can handle it.
-   *
-   * @return EntityMetadataWrapper
-   */
-  public function metadataWrapper(RulesState $state = NULL) {
-    if (!isset($this->wrapper)) {
-      $data = &$this->get($state);
-      $type = $this->parameter ? 'list' . '<' . $this->parameter . '>' : $this->type;
-      $this->wrapper = entity_metadata_wrapper($type, $data);
-    }
-    return $this->wrapper;
-  }
-}
-
-/**
- * Defines a generic wrapper for all core entities.
- */
-class RulesDataEntityWrapper extends RulesDataWrapper {
-
-  /**
-   * Returns the available parameter for entities, which are the known bundles.
-   */
-  public static function availableTypeParameter($type) {
-    if (($info = entity_get_info($type)) && !empty($info['bundles'])) {
-      foreach ($info['bundles'] as $name => $bundle_info) {
-        $return[$name] = $bundle_info['label'];
-      }
-    }
-    return isset($return) ? $return : array();
-  }
-
-  protected $itemName = 'entity';
-
-
-  public function metadataWrapper(RulesState $state = NULL) {
-    if (!isset($this->wrapper)) {
-      $data = &$this->get($state);
-      // We treat the type parameter as bundle.
-      $this->wrapper = entity_metadata_wrapper($this->type, $data, $this->parameter ? array('bundle' => $this->parameter) : array());
-      // Register this as the variable for the wrapper in the state's map.
-      if (!empty($state->wrapperMap)) {
-        $state->wrapperMap->add($this->wrapper, $this);
-      }
-    }
-    return $this->wrapper;
-  }
 }
 

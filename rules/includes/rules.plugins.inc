@@ -18,33 +18,32 @@ class RulesAction extends RulesAbstractPlugin implements RulesActionInterface {
    */
   protected function executeCallback(array $args, RulesState $state = NULL) {
     rules_log('Evaluating the action %name.', array('%name' => $this->elementName));
-    $return = $this->__call('execute', rules_unwrap_data($args, $state));
+    $return = $this->__call('execute', rules_unwrap_data($args));
 
     if (is_array($return)) {
       // $args contains the variable wrapper or directly the argument value, but
       // $wrappers contains also any used EntityMetadataWrapper.
       $wrappers = $state->executionArguments;
       foreach ($return as $name => $data) {
-        // Update data variables.
-        if (isset($args[$name]) && $args[$name] instanceof RulesDataWrapper) {
-          $args[$name]->update($data);
-        }
-        elseif (isset($this->settings[$name . ':select']) && $wrappers[$name] instanceof EntityMetadataWrapper) {
+        // Update the data value using the wrapper.
+        if (isset($args[$name]) && $wrappers[$name] instanceof EntityMetadataWrapper) {
           try {
-            // Update the data value using the wrapper.
             $wrappers[$name]->set($data);
           }
           catch (EntityMetadataWrapperException $e) {
-            throw new RulesException('Unable to modify data "@selector": ' . $e->getMessage(), array('@selector' => $this->settings[$name . ':select']));
+            throw new RulesException('Unable to update the argument for parameter %name: ' . $e->getMessage(), array('@name' => $name));
           }
         }
+        elseif (isset($args[$name])) {
+          $state->variables[$name] = $data;
+        }
         // Add provided variables.
-        elseif (!isset($state->variables[$name]) && isset($this->info['provides'][$name])) {
+        elseif (!$state->varInfo($name) && isset($this->info['provides'][$name])) {
           $var_name = isset($this->settings[$name . ':var']) ? $this->settings[$name . ':var'] : $name;
           $state->addVariable($var_name, $data, $this->info['provides'][$name]);
           rules_log('Added the provided variable %name of type %type', array('%name' => $var_name, '%type' => $this->info['provides'][$name]['type']));
-          if (!empty($this->info['provides'][$name]['save']) && $state->variables[$var_name] instanceof RulesDataWrapper) {
-            $state->variables[$var_name]->saveChanges(FALSE, $state);
+          if (!empty($this->info['provides'][$name]['save']) && $state->variables[$name] instanceof EntityDrupalWrapper) {
+            $state->saveChanges($var_name, $state->variables[$name]);
           }
         }
       }
@@ -52,12 +51,14 @@ class RulesAction extends RulesAbstractPlugin implements RulesActionInterface {
     // Save paramaters as defined in the parameter info.
     if ($return !== FALSE) {
       foreach ($this->info['parameter'] as $name => $info) {
-        if (!empty($info['save'])) {
-          if ($args[$name] instanceof RulesDataWrapper) {
-            $args[$name]->saveChanges(FALSE, $state);
+        if (!empty($info['save']) && $args[$name] instanceof EntityMetadataWrapper) {
+          if (isset($this->settings[$name . ':select'])) {
+            $state->saveChanges($this->settings[$name . ':select'], $args[$name]);
           }
-          elseif (isset($wrappers[$name]) && $wrappers[$name] instanceof EntityMetadataWrapper) {
-            RulesDataWrapper::metadataWrapperSaveChanges($wrappers[$name], $state);
+          else {
+            // Wrapper has been configured via direct input, so just save.
+            rules_log('Saved argument of type %type for parameter %name.', array('%name' => $name, '%type' => $args[$name]->type()));
+            $args[$name]->save();
           }
         }
       }
@@ -83,7 +84,7 @@ class RulesCondition extends RulesAbstractPlugin implements RulesConditionInterf
   }
 
   protected function executeCallback(array $args, RulesState $state = NULL) {
-    $return = (bool)$this->__call('execute', rules_unwrap_data($args, $state));
+    $return = (bool)$this->__call('execute', rules_unwrap_data($args));
     rules_log('The condition %name evaluated to %bool', array('%name' => $this->elementName, '%bool' => $return ? 'TRUE' : 'FALSE'));
     return $this->negate ? !$return : $return;
   }
@@ -353,13 +354,15 @@ class RulesLoop extends RulesActionContainer {
     $list_var = $this->getArgument('list', $this->parameter['list'], $state);
     $item_info = $this->listItemInfo();
     $name = $this->settings['item:var'];
-    $previous_var = isset($state->variables[$name]) ? $state->variables[$name] : NULL;
+    rules_log('Looping over the list items of %selector', array('%selector' => $this->settings['list:select']));
+
     // Loop over the list and evaluate the children for each list item.
-    foreach ($list_var->get($state) as $list_item) {
-      $state->addVariable($name, $list_item, $item_info);
-      parent::evaluate($state);
+    foreach ($list_var as $key => $item_value) {
+      // Use a separate state so variables are available in the loop only.
+      $state2 = clone $state;
+      $state2->addVariable($name, $list_var[$key], $item_info);
+      parent::evaluate($state2);
     }
-    $state->variables[$name] = $previous_var;
   }
 
   protected function stateVariables() {

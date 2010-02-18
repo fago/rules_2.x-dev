@@ -440,9 +440,8 @@ abstract class RulesPlugin extends RulesExtendable implements EntityAPIInterface
    * parameter $name described with $info.
    */
   protected function getArgument($name, $info, &$state) {
-    $vars = &$state->variables;
-    if (isset($this->settings[$name . ':select']) && isset($vars[$this->settings[$name . ':select']])) {
-      $arg = $vars[$this->settings[$name . ':select']];
+    if (isset($this->settings[$name . ':select']) && ($var = $state->get($this->settings[$name . ':select'])) !== NULL) {
+      $arg = $var;
     }
     elseif (isset($this->settings[$name . ':select'])) {
       $arg = $this->getSelectedVariable($this->settings[$name . ':select'], $name, $info, $state);
@@ -450,8 +449,8 @@ abstract class RulesPlugin extends RulesExtendable implements EntityAPIInterface
     elseif (isset($this->settings[$name])) {
       $arg = $this->settings[$name];
     }
-    elseif (isset($vars[$name])) {
-      $arg = $vars[$name];
+    elseif (($var = $state->get($name)) !== NULL) {
+      $arg = $var;
     }
     elseif (empty($info['optional'])) {
       throw new RulesException('Required parameter ' . check_plain($name) . ' is missing.');
@@ -496,14 +495,12 @@ abstract class RulesPlugin extends RulesExtendable implements EntityAPIInterface
   protected function applyDataSelector($selector, $state = NULL) {
     $parts = explode(':', $selector, 2);
     // Use the evaluation state to get the wrapper.
-    if (isset($state) && ($vars = &$state->variables) && isset($vars[$parts[0]]) && ($vars[$parts[0]] instanceof RulesDataWrapper)) {
-      $wrapper = $vars[$parts[0]]->metadataWrapper($state);
+    if (isset($state) && ($var = $state->get($parts[0])) && $var instanceof EntityMetadataWrapper) {
+      $wrapper = $var;
     }
     // If there is no evaluation state yet, so make use the variable info.
     elseif (!isset($state) && ($vars = $this->availableVariables()) && isset($vars[$parts[0]]['type'])) {
-      if (($data = rules_wrap_data($data = NULL, $vars[$parts[0]], TRUE))) {
-        $wrapper = $data->metadataWrapper();
-      }
+      $wrapper = rules_wrap_data($data = NULL, $vars[$parts[0]], TRUE);
     }
     try {
       if (isset($wrapper) && count($parts) > 1) {

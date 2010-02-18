@@ -10,24 +10,32 @@
  */
 class RulesState extends FacesRoot {
 
-  // The known variables.
+  /**
+   * The known variables.
+   */
   public $variables = array();
 
-  // Holds info about the variables.
+  /**
+   * Holds info about the variables.
+   */
   protected $info = array();
 
-  // Holds wrappers for the current arguments when executing a plugin.
-  public $executionArguments;
-  // Maps metadata wrappers to variables, needed to save changes.
-  public $wrapperMap;
-
-  // Keep the ids of blocked rules due to recursion prevention.
+  /**
+   * Keeps the ids of rules blocked due to recursion prevention.
+   */
   protected $blocked = array();
 
-  // Remember all variables existing so we can save them.
-  protected $allVariables = array();
 
+  /**
+   * The executed rules configuration.
+   * @var RulesPlugin
+   */
   protected $executedElement;
+
+  /**
+   * Keeps wrappers to be saved later on.
+   */
+  protected $save = array();
 
   /**
    * In case of recursive invocations this saves the previous state of the
@@ -36,10 +44,15 @@ class RulesState extends FacesRoot {
   protected $oldState = NULL;
 
 
+  //TODO: remove/rename??
+  //TODO: But how to deal with wrappers of primitive values?
+  //TODO: Maybe pass unwrap info to rules_data_unwrap.
+  public $executionArguments;
+
+
   public function __construct(RulesPlugin $element) {
     $this->executedElement = $element;
     $this->oldState = $element->property('state');
-    $this->wrapperMap = new RulesWrapperMap();
     $this->blocked = isset($this->oldState) ? $this->oldState->blocked : array();
   }
 
@@ -47,20 +60,15 @@ class RulesState extends FacesRoot {
    * Adds the given variable to the given execution state.
    */
   public function addVariable($name, &$data, $info) {
-    if (($variable = rules_wrap_data($data, $info))) {
-      $variable->setVariableName($name);
-    }
-    else {
-      $variable = $data;
-    }
     $this->info[$name] = $info + array(
       'skip save' => FALSE,
-      'save' => FALSE,
       'type' => 'unknown',
       'handler' => FALSE,
     );
-    $this->variables[$name] = $variable;
-    $this->allVariables[] = $variable;
+    if (isset($data)) {
+      // For unwrapped data be sure to the keep references!
+      $this->variables[$name] =& rules_wrap_data($data, $this->info[$name]);
+    }
   }
 
   /**
@@ -71,9 +79,8 @@ class RulesState extends FacesRoot {
    */
   public function cleanUp(RulesPlugin $element) {
     // Make changes permanent.
-    $vars = array_merge($this->wrapperMap->variables(), $this->allVariables);
-    foreach ($vars as $var) {
-      $var->saveChanges(NULL, $this);
+    foreach ($this->save as $selector => $wrapper) {
+      $this->saveNow($selector);
     }
     unset($this->executionArguments);
     $state =& $element->property('state');
@@ -112,15 +119,34 @@ class RulesState extends FacesRoot {
    */
   public function __clone() {
     $state = $this->executedElement->property('state');
-    $this->allVariables =& $state->allVariables;
+    $this->save =& $state->save;
     $this->blocked =& $state->blocked;
   }
 
   /**
-   * Get the info about the state variables.
+   * Get the info about the state variables or a single variable.
    */
-  public function info() {
+  public function varInfo($name = NULL) {
+    if (isset($name)) {
+      return isset($this->info[$name]) ? $this->info[$name] : FALSE;
+    }
     return $this->info;
+  }
+
+  /**
+   * Returns whether the given wrapper is savable.
+   */
+  public function isSavable($wrapper) {
+    $entity_info = entity_get_info();
+    return isset($entity_info[$wrapper->type()]['save callback']);
+  }
+
+  /**
+   * Returns whether the variable with the given name is an entity.
+   */
+  public function isEntity($name) {
+    $entity_info = entity_get_info();
+    return isset($this->info[$name]['type']) && isset($entity_info[$this->info[$name]['type']]);
   }
 
   /**
@@ -134,129 +160,76 @@ class RulesState extends FacesRoot {
    *   The variable or a EntityMetadataWrapper containing the variable.
    */
   public function &get($name) {
-    if (!isset($this->variables[$name]) && $this->info[$name]['handler'] && function_exists($this->info[$name]['handler'])) {
-      $this->variables[$name] = call_user_func_array($this->info[$name]['handler'], $this->variables);
-      $this->info[$name]['handler'] = FALSE;
+    if (!array_key_exists($name, $this->variables)) {
+      if (!empty($this->info[$name]['handler'])) {
+        $data = call_user_func_array($this->info[$name]['handler'], rules_unwrap_data($this->variables));
+        $this->variables[$name] = rules_wrap_data($data, $this->info[$name]);
+        $this->info[$name]['handler'] = FALSE;
+      }
+      $this->variables += array($name => NULL);
     }
     return $this->variables[$name];
   }
 
   /**
-   * Updates a variable.
-   *
-   * @param $name
-   *   The name of the variable to update.
-   * @param $value
-   *   The data with which to update or its EntityMetadataWrapper.
-   * @param $permanent
-   *   If TRUE, save the data later on. Only applicable for savable data types.
-   */
-  public function update($name, $value, $permanent = FALSE) {
-    $this->variables[$name] = $data;
-    return $permanent ? $this->saveChanges($name, FALSE) : $this;
-  }
-
-  /**
-   * Apply permanent changes provided variable's data type is savable.
+   * Apply permanent changes provided the wrapper's data type is savable.
    *
    * @param $name
    *   The name of the variable to update.
    * @param $immediate
-   *   Pass FALSE to postpone saving to later on. Then invoke it later with
-   *   set to NULL, so the data is saved only if it has been previously marked
-   *   to save it later. If TRUE is passed, it's immediately saved.
+   *   Pass FALSE to postpone saving to later on. Else it's immediately saved.
    */
-  public function saveChanges($name, $immediate = NULL) {
-    $info = &$this->info[$name];
-    // Remember to save later on.
-    if ($immediate === FALSE && !$info['skip save']) {
-      $info['save'] = TRUE;
-      if (isset($this->blocked)) {
-        $info += array('blocked' => array());
-        $info['blocked'] += $this->blocked;
+  public function saveChanges($selector, $wrapper, $immediate = FALSE) {
+    $info = $wrapper->info();
+    if (!$info['skip save'] && $this->isSavable($wrapper)) {
+      // Remember to save later on.
+      if ($immediate === FALSE) {
+        $this->saveLater($selector, $wrapper);
+      }
+      // Save now!
+      elseif ($immediate) {
+        $this->save[$selector] = array($wrapper, $this->blocked);
+        $this->saveNow($selector);
       }
     }
-    // Save now!
-    elseif (($immediate || $info['save']) && !$info['skip save'] && $this->isSavable($name)) {
-      rules_log('Saved variable %name of type %type.', array('%name' => $name, '%type' => $info['type']));
-
-      if (isset($this->blocked) && !empty($info['blocked'])) {
-        // Add the set of blocked elements for the recursion prevention.
-        $previously_blocked = $this->blocked;
-        $this->blocked += $info['blocked'];
-      }
-      // Actually save!
-      $this->variables[$name]->save();
-
-      if (isset($this->blocked) && isset($previously_blocked)) {
-        // Restore the state's set of blocked elements.
-        $this->blocked = $previously_blocked;
-      }
-      $info['save'] = FALSE;
-      unset($info['blocked']);
+    // No entity, so try saving the parent.
+    elseif (!$info['skip save'] && isset($info['parent']) && !($wrapper instanceof EntityDrupalWrapper)) {
+      // Cut of the last part of the selector.
+      $selector = implode(':', explode(':', $selector, -1));
+      $this->saveChanges($selector, $info['parent'], $immediate);
     }
     return $this;
   }
 
   /**
-   * Returns whether the variable with the given name is an savable.
+   * Remembers to save the wrapper on cleanup.
    */
-  public function isSavable($name) {
-    $entity_info = entity_get_info();
-    return isset($this->info[$name]['type']) && isset($entity_info[$this->info[$name]['type']]['save callback']);
+  protected function saveLater($selector, EntityMetadataWrapper $wrapper) {
+    if (isset($this->save[$selector]) && $this->save[$selector][0]->getIdentifier() != $wrapper->getIdentifier()) {
+      // The wrapper is already in there, but now wraps another entity. So first
+      // save the old one, then remember the new one to save it later.
+      $this->saveNow($selector);
+    }
+    $this->save[$selector] = array(clone $wrapper, $this->blocked);
   }
 
   /**
-   * Returns whether the variable with the given name is an entity.
+   * Saves the wrapper for the given selector.
    */
-  public function isEntity($name) {
-    $entity_info = entity_get_info();
-    return isset($this->info[$name]['type']) && isset($entity_info[$this->info[$name]['type']]);
+  protected function saveNow($selector) {
+    // Add the set of blocked elements for the recursion prevention.
+    $previously_blocked = $this->blocked;
+    $this->blocked += $this->save[$selector][1];
+
+    // Actually save!
+    $wrapper = $this->save[$selector][0];
+    rules_log('Saved %selector of type %type.', array('%selector' => $selector, '%type' => $wrapper->type()));
+    $wrapper->save();
+
+    // Restore the state's set of blocked elements.
+    $this->blocked = $previously_blocked;
+    unset($this->save[$selector]);
   }
 }
 
 
-
-/**
- * A small class mapping entity metadata wrappers to variables. We need this
- * map for being able to apply intelligent saving to this data.
- */
-class RulesWrapperMap {
-
-  protected $map = array();
-
-  public function add(EntityMetadataWrapper $wrapper, RulesDataWrapper $var) {
-    if ($wrapper instanceof EntityWrapper && ($id = $wrapper->getIdentifier())) {
-      // Usually we map by the data's id, as when the wrapper's data has been
-      // changed (e.g. node:author) then we need a new variable.
-      $id = $wrapper->type() . ':' . $id;
-      $this->map[$id] = $var;
-    }
-    elseif ($var->isSavable()) {
-      // Data being savable but having no ID can only be in a wrapper, if
-      // directly derived from a variable. In that case we create a new data
-      // item, which will be always associatd with that variable.
-      $this->map[spl_object_hash($wrapper)] = $var;
-    }
-  }
-
-  /**
-   * Gets the variable for a wrapper.
-   */
-  public function getVariable(EntityMetadataWrapper $wrapper) {
-    if (isset($this->map[spl_object_hash($wrapper)])) {
-      return $this->map[spl_object_hash($wrapper)];
-    }
-    elseif (($id = $wrapper->getIdentifier()) && ($id = $wrapper->type() . ':' . $id) && isset($this->map[$id])) {
-      return $this->map[$id];
-    }
-    return FALSE;
-  }
-
-  /**
-   * Get all variables contained in the map.
-   */
-  public function variables() {
-    return $this->map;
-  }
-}

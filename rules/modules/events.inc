@@ -50,7 +50,8 @@ function rules_node_delete($node) {
  * @see rules_events_node_variables()
  */
 function rules_events_node_var_unchanged($node) {
-  if (empty($node->nid)) {
+  rules_log('invoked');
+  if (!empty($node->is_new) || empty($node->nid)) {
     throw new RulesException("Can't load the unchanged node variable as there is none yet.");
   }
   // Use read-only so actually don't change the array.
@@ -109,7 +110,7 @@ function rules_user_logout(&$edit, $account) {
  * Gets the account object, that doesn't contain the changes.
  */
 function rules_events_account_var_unchanged($account) {
-  if (empty($account->uid)) {
+  if (!empty($account->is_new) || empty($account->uid)) {
     throw new RulesException("Can't load the unchanged account variable as there is none yet.");
   }
   // Use read-only so actually don't change the array.

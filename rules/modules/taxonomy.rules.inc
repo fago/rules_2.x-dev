@@ -90,13 +90,13 @@ function rules_taxonomy_data_info() {
   return array(
     'taxonomy_term' => array(
       'label' => t('taxonomy term'),
-      'class' => 'RulesDataEntityWrapper',
       'parent' => 'entity',
+      'wrap' => TRUE,
     ),
     'taxonomy_vocabulary' => array(
       'label' => t('taxonomy vocabulary'),
-      'class' => 'RulesDataEntityWrapper',
       'parent' => 'entity',
+      'wrap' => TRUE,
     ),
   );
 }
