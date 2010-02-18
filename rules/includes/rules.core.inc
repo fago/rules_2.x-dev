@@ -228,7 +228,7 @@ abstract class RulesPlugin extends RulesExtendable implements EntityAPIInterface
   protected $cache = NULL, $hook = 'plugin_info';
 
   /**
-   *  The current execution state, if this plugin is currently executed.
+   *  The current evaluation state, if this plugin is currently executed.
    */
   protected $state = NULL;
 
@@ -243,7 +243,7 @@ abstract class RulesPlugin extends RulesExtendable implements EntityAPIInterface
    */
   public function execute() {}
 
-  protected function evaluate(array &$state) {}
+  protected function evaluate(RulesState $state) {}
 
   protected static function compare(RulesPlugin $a, RulesPlugin $b) {
     if ($a->weight == $b->weight) {
@@ -330,31 +330,15 @@ abstract class RulesPlugin extends RulesExtendable implements EntityAPIInterface
    * so added 'variables' are only visible for elements in scope.
    */
   protected function setUpState(array $args) {
-    $this->state = array(
-      'variables' => array(),
-      'all variables' => array(),
-      'executed' => $this,
-
-      // Holds wrappers for the current arguments when executing a plugin.
-      'execution arguments' => array(),
-
-      // Maps metadata wrappers to variables, needed to save changes.
-      'wrapper map' => new RulesWrapperMap(),
-
-      // Keep the ids of blocked rules due to recursion prevention. Note that
-      // we use an ArrayObject to ensure a unique array per execution state.
-      'blocked' => isset($this->state) ? $this->state['blocked'] : new ArrayObject(),
-
-      // If this is a recursive execution, save the previous state for later.
-      'stack' => isset($this->state) ? $this->state : NULL,
-    );
+    $this->state = new RulesState($this);
     $args = $this->getPassedArguments($args);
+
     foreach ($this->setUpVariables() as $name => $info) {
       if (!isset($args[$name]) && empty($info['handler']) && empty($info['optional'])) {
         throw new RulesException('Argument ' . check_plain($name) . ' is missing.');
       }
       $args += array($name => NULL);
-      $this->addVariable($name, $args[$name], $info, $this->state);
+      $this->state->addVariable($name, $args[$name], $info);
     }
     return $this->state;
   }
@@ -367,29 +351,12 @@ abstract class RulesPlugin extends RulesExtendable implements EntityAPIInterface
   }
 
   /**
-   * Run cleanup operations after execution. Takes care of saving changed vars
-   * and makes sure the garbage collector can destruct them.
-   */
-  protected function cleanUp() {
-    if (isset($this->state) && $this->state['executed'] === $this) {
-      // Make changes permanent.
-      $vars = array_merge($this->state['wrapper map']->variables(), $this->state['all variables']);
-      foreach ($vars as $var) {
-        $var->saveChanges(NULL, $this->state);
-      }
-      unset($this->state['execution arguments']);
-    }
-    // For recursive invocations pop the state from the stack, else set NULL.
-    $this->state = $this->state['stack'];
-  }
-
-  /**
    * Returns info about variables available to be used as arguments for this
    * element.
    */
   public function availableVariables() {
     $vars = array();
-    if (isset($this->parent) && (empty($this->state) || $this->state['executed'] !== $this)) {
+    if (isset($this->parent) && empty($this->state)) {
       $vars += $this->parent->stateVariables();
       // Add in variables provided by siblings executed before us.
       foreach ($this->parent->children as $child) {
@@ -400,24 +367,6 @@ abstract class RulesPlugin extends RulesExtendable implements EntityAPIInterface
       }
     }
     return $vars;
-  }
-
-  /**
-   * Adds the given variable to the given execution state.
-   */
-  protected function addVariable($name, &$data, $info, &$state) {
-    if ($variable = rules_wrap_data($data, $info)) {
-      $variable->setVariableName($name);
-      // In the outer most scoped execution state we store references to all
-      // variables added during the whole evaluation. So we can access them
-      // after execution and cleanup.
-      $state['executed']->state['all variables'][] = $variable;
-    }
-    else {
-      // If there is no wrapper class, just pass through the data.
-      $variable = $data;
-    }
-    $state['variables'][$name] = $variable;
   }
 
   /**
@@ -491,7 +440,7 @@ abstract class RulesPlugin extends RulesExtendable implements EntityAPIInterface
    * parameter $name described with $info.
    */
   protected function getArgument($name, $info, &$state) {
-    $vars = &$state['variables'];
+    $vars = &$state->variables;
     if (isset($this->settings[$name . ':select']) && isset($vars[$this->settings[$name . ':select']])) {
       $arg = $vars[$this->settings[$name . ':select']];
     }
@@ -519,10 +468,10 @@ abstract class RulesPlugin extends RulesExtendable implements EntityAPIInterface
     return $arg;
   }
 
-  protected function getSelectedVariable($selector, $name, &$info, array &$state) {
+  protected function getSelectedVariable($selector, $name, &$info, RulesState $state) {
     if ($wrapper = $this->applyDataSelector($selector, $state)) {
       // Make the wrapper available for later or action implementations.
-      $state['execution arguments'][$name] = $wrapper;
+      $state->executionArguments[$name] = $wrapper;
       $options = array('decode' => TRUE);
       if ($info['type'] == 'text' && !empty($info['sanitized'])) {
         $options = array('sanitize' => TRUE);
@@ -547,7 +496,7 @@ abstract class RulesPlugin extends RulesExtendable implements EntityAPIInterface
   protected function applyDataSelector($selector, $state = NULL) {
     $parts = explode(':', $selector, 2);
     // Use the evaluation state to get the wrapper.
-    if (isset($state) && ($vars = &$state['variables']) && isset($vars[$parts[0]]) && ($vars[$parts[0]] instanceof RulesDataWrapper)) {
+    if (isset($state) && ($vars = &$state->variables) && isset($vars[$parts[0]]) && ($vars[$parts[0]] instanceof RulesDataWrapper)) {
       $wrapper = $vars[$parts[0]]->metadataWrapper($state);
     }
     // If there is no evaluation state yet, so make use the variable info.
@@ -805,7 +754,6 @@ abstract class RulesAbstractPlugin extends RulesPlugin {
   public function execute() {
     $replacements = array('%label' => isset($this->info['label']) ? $this->info['label'] : $this->name, '%plugin' => $this->itemName);
     rules_log('Executing %plugin %label.', $replacements, RulesLog::INFO, TRUE);
-    $state = array();
     $this->forceSetUp();
     $this->processSettings();
     $args = func_get_args();
@@ -815,8 +763,11 @@ abstract class RulesAbstractPlugin extends RulesPlugin {
       $state = $this->setUpState($args);
       $args = $this->getExecutionArguments($state);
     }
+    else {
+      $state = new RulesState($this);
+    }
     $return = $this->executeCallback($args, $state);
-    $this->cleanUp();
+    $state->cleanUp($this);
     rules_log('Finished executing of %plugin %label.', $replacements, RulesLog::INFO, FALSE);
     return $return;
   }
@@ -824,10 +775,10 @@ abstract class RulesAbstractPlugin extends RulesPlugin {
   /**
    * Execute the configured execution callback and log that.
    */
-  abstract protected function executeCallback(array $args, array &$state = array());
+  abstract protected function executeCallback(array $args, RulesState $state = NULL);
 
 
-  protected function evaluate(array &$state) {
+  protected function evaluate(RulesState $state) {
     $this->forceSetUp();
     $this->processSettings();
     try {
@@ -843,17 +794,19 @@ abstract class RulesAbstractPlugin extends RulesPlugin {
   /**
    * Gets the right arguments for executing this.
    */
-  protected function getExecutionArguments(array &$state) {
-    $state['execution arguments'] = array();
-    $args = array();
+  protected function getExecutionArguments(RulesState $state) {
+    // Make the variables for the arguments available in the state too.
+    $state->executionArguments = array();
+
     foreach ($this->info['parameter'] as $name => $info) {
       $args[$name] = $this->getArgument($name, $info, $state);
     }
-    // Append the settings, $this and the execution state.
+    // Append the settings and the execution state. Faces will append $this.
     $args[] = $this->settings;
-    $args[] = &$state;
-    // Make the variables for the arguments available in the state too.
-    $state['execution arguments'] += $args;
+    $args[] = $state;
+    // Any retrieved wrapper will be automatically added to the $state too,
+    // thus we just have to append the remaining arguments.
+    $state->executionArguments += $args;
     return $args;
   }
 
@@ -1062,7 +1015,7 @@ abstract class RulesContainerPlugin extends RulesPlugin implements IteratorAggre
   }
 
   public function availableVariables() {
-    if (!isset($this->parent) || (!empty($this->state) && $this->state['executed'] === $this)) {
+    if (!isset($this->parent) || !empty($this->state)) {
       return isset($this->info['variables']) ? $this->info['variables'] : array();
     }
     return parent::availableVariables();
@@ -1099,7 +1052,7 @@ abstract class RulesContainerPlugin extends RulesPlugin implements IteratorAggre
     rules_log('Executing %plugin %label.', $replacements, RulesLog::INFO, TRUE);
     $state = $this->setUpState(func_get_args());
     $return = $this->evaluate($state);
-    $this->cleanUp();
+    $state->cleanUp($this);
     rules_log('Finished executing of %plugin %label.', $replacements, RulesLog::INFO, FALSE);
     return $return;
   }
@@ -1183,7 +1136,7 @@ abstract class RulesActionContainer extends RulesContainerPlugin implements Rule
   /**
    * As default we add provided variables to the parent's scope.
    */
-  protected function evaluate(array &$state) {
+  protected function evaluate(RulesState $state) {
     foreach ($this->children as $action) {
       $action->evaluate($state);
     }
@@ -1356,49 +1309,5 @@ class RulesException extends Exception {
 
   public function __toString() {
     return t($this->msg, $this->args);
-  }
-}
-
-/**
- * A small class mapping entity metadata wrappers to variables. We need this
- * map for being able to apply intelligent saving to this data.
- */
-class RulesWrapperMap {
-
-  protected $map = array();
-
-  public function add(EntityMetadataWrapper $wrapper, RulesDataWrapper $var) {
-    if ($wrapper instanceof EntityWrapper && ($id = $wrapper->getIdentifier())) {
-      // Usually we map by the data's id, as when the wrapper's data has been
-      // changed (e.g. node:author) then we need a new variable.
-      $id = $wrapper->type() . ':' . $id;
-      $this->map[$id] = $var;
-    }
-    elseif ($var->isSavable()) {
-      // Data being savable but having no ID can only be in a wrapper, if
-      // directly derived from a variable. In that case we create a new data
-      // item, which will be always associatd with that variable.
-      $this->map[spl_object_hash($wrapper)] = $var;
-    }
-  }
-
-  /**
-   * Gets the variable for a wrapper.
-   */
-  public function getVariable(EntityMetadataWrapper $wrapper) {
-    if (isset($this->map[spl_object_hash($wrapper)])) {
-      return $this->map[spl_object_hash($wrapper)];
-    }
-    elseif (($id = $wrapper->getIdentifier()) && ($id = $wrapper->type() . ':' . $id) && isset($this->map[$id])) {
-      return $this->map[$id];
-    }
-    return FALSE;
-  }
-
-  /**
-   * Get all variables contained in the map.
-   */
-  public function variables() {
-    return $this->map;
   }
 }

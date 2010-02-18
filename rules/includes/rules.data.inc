@@ -41,18 +41,6 @@ interface RulesDataInputFormInterface {
 class RulesDataWrapper extends RulesExtendable implements Serializable {
 
   /**
-   * Defines the available type parameter for a data type.
-   *
-   * @param $type
-   *   The actual type for which to get the type parameter.
-   * @return
-   *   An array keyed by parameter with the paremtrized type's label as values.
-   */
-  public static function availableTypeParameter($type) {
-    return array();
-  }
-
-  /**
    * Returns whether the type match. They match if type1 is compatible to type2.
    *
    * @param $var_info
@@ -115,16 +103,16 @@ class RulesDataWrapper extends RulesExtendable implements Serializable {
    * @param $wrapper
    *   The wrapper that has been set, thus its parent will be saved.
    */
-  public static function metadataWrapperSaveChanges($wrapper, array $state, $immediate = FALSE) {
+  public static function metadataWrapperSaveChanges($wrapper, RulesState $state, $immediate = FALSE) {
     $info = $wrapper->info() + array('type' => $wrapper->type());
-    if ($var = $state['wrapper map']->getVariable($wrapper)) {
+    if ($var = $state->wrapperMap->getVariable($wrapper)) {
       $var->update($wrapper)->saveChanges($immediate, $state);
     }
     // This data wrapper has no variable associated yet, so create one.
     elseif (($var = rules_wrap_data($wrapper->value(), $info)) && $var->isIdentifiable()) {
       if ($var->isSavable()) {
         $var->saveChanges($immediate, $state);
-        $state['wrapper map']->add($wrapper, $var);
+        $state->wrapperMap->add($wrapper, $var);
       }
       // Else the data is identifiable, but not savable. Nothing we can do.
     }
@@ -230,11 +218,11 @@ class RulesDataWrapper extends RulesExtendable implements Serializable {
    *   Throws a RulesException, if the data should be loaded, but loading fails.
    * @return The data.
    */
-  public function &get(array $state = NULL) {
+  public function &get(RulesState $state = NULL) {
     // TODO: If there is an input value first of apply input eval + process it
     // to get the data ==> Support input evaluation.
     if (!$this->info['loaded'] && $this->info['handler'] && function_exists($this->info['handler'])) {
-      $args = isset($state) ? rules_unwrap_data($state['variables'], $state, FALSE) : array();
+      $args = isset($state) ? rules_unwrap_data($state->variables, $state, FALSE) : array();
       $this->data = call_user_func_array($this->info['handler'], $args);
       $this->info['loaded'] = TRUE;
     }
@@ -276,12 +264,12 @@ class RulesDataWrapper extends RulesExtendable implements Serializable {
    *   set to NULL, so the data is saved only if it has been previously marked
    *   to save it later. If TRUE is passed, it's immediately saved.
    */
-  public function saveChanges($immediate = NULL, $state = array()) {
+  public function saveChanges($immediate = NULL, $state = NULL) {
     // Remember to save later on.
     if ($immediate === FALSE && !$this->info['skip save']) {
       $this->info['save'] = TRUE;
-      if (isset($state['blocked'])) {
-        $this->blocked += $state['blocked']->getArrayCopy();
+      if (isset($state->blocked)) {
+        $this->blocked += $state->blocked;
       }
     }
     // Save now!
@@ -289,17 +277,17 @@ class RulesDataWrapper extends RulesExtendable implements Serializable {
       if (isset($this->name)) {
         rules_log('Saved variable %name of type %type.', array('%name' => $this->name, '%type' => $this->type));
       }
-      if (isset($state['blocked']) && !empty($this->blocked)) {
+      if (isset($state->blocked) && !empty($this->blocked)) {
         // Add the set of blocked elements for the recursion prevention.
-        $previously_blocked = $state['blocked']->getArrayCopy();
-        $state['blocked']->exchangeArray($previously_blocked + $this->blocked);
+        $previously_blocked = $state->blocked;
+        $state->blocked += $this->blocked;
       }
       // Actually save!
       $this->save();
 
-      if (isset($state['blocked']) && isset($previously_blocked)) {
+      if (isset($state->blocked) && isset($previously_blocked)) {
         // Restore the state's set of blocked elements.
-        $state['blocked']->exchangeArray($previously_blocked);
+        $state->blocked = $previously_blocked;
       }
       $this->info['save'] = FALSE;
     }

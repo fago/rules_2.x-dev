@@ -13,7 +13,7 @@
  * Action: Modify data.
  */
 function rules_action_data_set($data, $value, $settings, $state, $element) {
-  $wrapper = $state['execution arguments']['data'];
+  $wrapper = $state->executionArguments['data'];
   $wrapper = $wrapper instanceof RulesDataWrapper ? $wrapper->metadataWrapper($state) : $wrapper;
   try {
     // Update the value first then save changes, if possible.
@@ -66,7 +66,7 @@ function rules_action_data_create($type) {
  */
 function rules_action_data_save($data, $immediate = FALSE, $settings, $state, $element) {
   // Usually rules cares for saving, however it won't happen immediately.
-  if ($immediate && $wrapper = $state['execution arguments']['data']) {
+  if ($immediate && $wrapper = $state->executionArguments['data']) {
     $wrapper = $wrapper instanceof RulesDataWrapper ? $wrapper->metadataWrapper($state) : $wrapper;
     RulesDataWrapper::metadataWrapperSaveChanges($wrapper, $state, $immediate);
     // We have already saved, so don't do it again.
@@ -78,9 +78,9 @@ function rules_action_data_save($data, $immediate = FALSE, $settings, $state, $e
  * Action: Delete data
  */
 function rules_action_data_delete($data, $settings, $state, $element) {
-  $wrapper = $state['execution arguments']['data'];
+  $wrapper = $state->executionArguments['data'];
   $wrapper = $wrapper instanceof RulesDataWrapper ? $wrapper->metadataWrapper($state) : $wrapper;
-  if ($var = $state['wrapper map']->getVariable($wrapper)) {
+  if ($var = $state->wrapperMap->getVariable($wrapper)) {
     $var->delete();
   }
   else {
@@ -201,7 +201,7 @@ class RulesDataListWrapper extends RulesDataWrapper {
    *
    * @return EntityMetadataWrapper
    */
-  public function metadataWrapper(array $state = NULL) {
+  public function metadataWrapper(RulesState $state = NULL) {
     if (!isset($this->wrapper)) {
       $data = &$this->get($state);
       $type = $this->parameter ? 'list' . '<' . $this->parameter . '>' : $this->type;
@@ -231,14 +231,14 @@ class RulesDataEntityWrapper extends RulesDataWrapper {
   protected $itemName = 'entity';
 
 
-  public function metadataWrapper(array $state = NULL) {
+  public function metadataWrapper(RulesState $state = NULL) {
     if (!isset($this->wrapper)) {
       $data = &$this->get($state);
       // We treat the type parameter as bundle.
       $this->wrapper = entity_metadata_wrapper($this->type, $data, $this->parameter ? array('bundle' => $this->parameter) : array());
       // Register this as the variable for the wrapper in the state's map.
-      if (!empty($state['wrapper map'])) {
-        $state['wrapper map']->add($this->wrapper, $this);
+      if (!empty($state->wrapperMap)) {
+        $state->wrapperMap->add($this->wrapper, $this);
       }
     }
     return $this->wrapper;

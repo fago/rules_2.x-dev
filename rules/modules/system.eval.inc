@@ -87,7 +87,7 @@ class RulesDataLogEntryWrapper extends RulesDataWrapper  {
   /**
    * Specify metadata for the log entry and return a metadata wrapper.
    */
-  public function metadataWrapper(array $state = NULL) {
+  public function metadataWrapper(RulesState $state = NULL) {
     if (!isset($this->wrapper)) {
       $data = &$this->get($state);
       // The info has to contain 'data info' which we pass through.

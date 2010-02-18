@@ -16,15 +16,14 @@ class RulesAction extends RulesAbstractPlugin implements RulesActionInterface {
   /**
    * Execute the callback and update/save data as specified by the action.
    */
-  protected function executeCallback(array $args, array &$state = array()) {
+  protected function executeCallback(array $args, RulesState $state = NULL) {
     rules_log('Evaluating the action %name.', array('%name' => $this->elementName));
     $return = $this->__call('execute', rules_unwrap_data($args, $state));
 
     if (is_array($return)) {
       // $args contains the variable wrapper or directly the argument value, but
       // $wrappers contains also any used EntityMetadataWrapper.
-      $wrappers = $state['execution arguments'];
-
+      $wrappers = $state->executionArguments;
       foreach ($return as $name => $data) {
         // Update data variables.
         if (isset($args[$name]) && $args[$name] instanceof RulesDataWrapper) {
@@ -40,12 +39,12 @@ class RulesAction extends RulesAbstractPlugin implements RulesActionInterface {
           }
         }
         // Add provided variables.
-        elseif (!isset($state['variables'][$name]) && isset($this->info['provides'][$name])) {
+        elseif (!isset($state->variables[$name]) && isset($this->info['provides'][$name])) {
           $var_name = isset($this->settings[$name . ':var']) ? $this->settings[$name . ':var'] : $name;
-          $this->addVariable($var_name, $data, $this->info['provides'][$name], $state);
+          $state->addVariable($var_name, $data, $this->info['provides'][$name]);
           rules_log('Added the provided variable %name of type %type', array('%name' => $var_name, '%type' => $this->info['provides'][$name]['type']));
-          if (!empty($this->info['provides'][$name]['save']) && $state['variables'][$var_name] instanceof RulesDataWrapper) {
-            $state['variables'][$var_name]->saveChanges(FALSE, $state);
+          if (!empty($this->info['provides'][$name]['save']) && $state->variables[$var_name] instanceof RulesDataWrapper) {
+            $state->variables[$var_name]->saveChanges(FALSE, $state);
           }
         }
       }
@@ -83,7 +82,7 @@ class RulesCondition extends RulesAbstractPlugin implements RulesConditionInterf
     return $this;
   }
 
-  protected function executeCallback(array $args, array &$state = array()) {
+  protected function executeCallback(array $args, RulesState $state = NULL) {
     $return = (bool)$this->__call('execute', rules_unwrap_data($args, $state));
     rules_log('The condition %name evaluated to %bool', array('%name' => $this->elementName, '%bool' => $return ? 'TRUE' : 'FALSE'));
     return $this->negate ? !$return : $return;
@@ -160,21 +159,16 @@ class Rule extends RulesActionContainer {
     parent::sortChildren($deep);
   }
 
-  protected function evaluate(array &$state) {
-    if (!empty($this->id) && isset($state['blocked'][$this->id])) {
+  protected function evaluate(RulesState &$state) {
+    if ($state->isBlocked($this)) {
       return rules_log('Not evaluating the rule %label to prevent recursion.', array('%label' => $this->label), RulesLog::INFO);
     }
     rules_log('Evaluating rule %label.', array('%label' => $this->label));
     if (empty($this->conditions) || $this->conditions->evaluate($state)) {
       // Block the rule to prevent recursion, if not allowed.
-      if (!$this->recursion && $this->id) {
-        $state['blocked'][$this->id] = TRUE;
-      }
-      // Evaluate the actions.
+      $state->block($this);
       parent::evaluate($state);
-      if (!$this->recursion && $this->id) {
-        unset($state['blocked'][$this->id]);
-      }
+      $state->unblock($this);
     }
   }
 
@@ -221,10 +215,10 @@ class RulesReactionRule extends Rule implements RulesTriggerableInterface {
   }
 
   /**
-   * Reaction rules can't add variables to the parent scope, so copy $state.
+   * Reaction rules can't add variables to the parent scope, so clone $state.
    */
-  protected function evaluate(array &$state) {
-    $copy = $state;
+  protected function evaluate(RulesState $state) {
+    $copy = clone $state;
     parent::evaluate($copy);
   }
 
@@ -274,7 +268,7 @@ class RulesAnd extends RulesConditionContainer {
 
   protected $itemName = 'and';
 
-  protected function evaluate(array &$state) {
+  protected function evaluate(RulesState $state) {
     foreach ($this->children as $condition) {
       if (!$condition->evaluate($state)) {
         rules_log('AND evaluated to FALSE.');
@@ -293,7 +287,7 @@ class RulesOr extends RulesConditionContainer {
 
   protected $itemName = 'or';
 
-  protected function evaluate(array &$state) {
+  protected function evaluate(RulesState $state) {
     foreach ($this->children as $condition) {
       if ($condition->evaluate($state)) {
         rules_log('OR evaluated to TRUE.');
@@ -355,17 +349,17 @@ class RulesLoop extends RulesActionContainer {
     );
   }
 
-  protected function evaluate(array &$state) {
+  protected function evaluate(RulesState $state) {
     $list_var = $this->getArgument('list', $this->parameter['list'], $state);
     $item_info = $this->listItemInfo();
     $name = $this->settings['item:var'];
-    $previous_var = isset($state['variables'][$name]) ? $state['variables'][$name] : NULL;
+    $previous_var = isset($state->variables[$name]) ? $state->variables[$name] : NULL;
     // Loop over the list and evaluate the children for each list item.
     foreach ($list_var->get($state) as $list_item) {
-      $this->addVariable($name, $list_item, $item_info, $state);
+      $state->addVariable($name, $list_item, $item_info);
       parent::evaluate($state);
     }
-    $state['variables'][$name] = $previous_var;
+    $state->variables[$name] = $previous_var;
   }
 
   protected function stateVariables() {
@@ -416,7 +410,7 @@ class RulesEventSet extends RulesRuleSet {
     rules_log('Reacting on event %label.', array('%label' => $this->info['label']), RulesLog::INFO, TRUE);
     $state = $this->setUpState(func_get_args());
     $this->evaluate($state);
-    $this->cleanUp();
+    $state->cleanUp($this);
     rules_log('Finished reacting on event %label.', array('%label' => $this->info['label']), RulesLog::INFO, FALSE);
     // TODO: improve that to show the log for admins or log to watchdog.
     RulesLog::logger()->checkLog();
