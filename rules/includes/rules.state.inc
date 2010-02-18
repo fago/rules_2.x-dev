@@ -13,13 +13,16 @@ class RulesState extends FacesRoot {
   // The known variables.
   public $variables = array();
 
+  // Holds info about the variables.
+  protected $info = array();
+
   // Holds wrappers for the current arguments when executing a plugin.
   public $executionArguments;
   // Maps metadata wrappers to variables, needed to save changes.
   public $wrapperMap;
 
   // Keep the ids of blocked rules due to recursion prevention.
-  public $blocked = array();
+  protected $blocked = array();
 
   // Remember all variables existing so we can save them.
   protected $allVariables = array();
@@ -44,15 +47,20 @@ class RulesState extends FacesRoot {
    * Adds the given variable to the given execution state.
    */
   public function addVariable($name, &$data, $info) {
-    if ($variable = rules_wrap_data($data, $info)) {
+    if (($variable = rules_wrap_data($data, $info))) {
       $variable->setVariableName($name);
-      $this->allVariables[] = $variable;
     }
     else {
-      // If there is no wrapper class, just pass through the data.
       $variable = $data;
     }
+    $this->info[$name] = $info + array(
+      'skip save' => FALSE,
+      'save' => FALSE,
+      'type' => 'unknown',
+      'handler' => FALSE,
+    );
     $this->variables[$name] = $variable;
+    $this->allVariables[] = $variable;
   }
 
   /**
@@ -106,6 +114,104 @@ class RulesState extends FacesRoot {
     $state = $this->executedElement->property('state');
     $this->allVariables =& $state->allVariables;
     $this->blocked =& $state->blocked;
+  }
+
+  /**
+   * Get the info about the state variables.
+   */
+  public function info() {
+    return $this->info;
+  }
+
+  /**
+   * Gets a variable.
+   *
+   * If necessary, the specified handler is invoked to fetch the variable.
+   *
+   * @param $name
+   *   The name of the variable to return.
+   * @return
+   *   The variable or a EntityMetadataWrapper containing the variable.
+   */
+  public function &get($name) {
+    if (!isset($this->variables[$name]) && $this->info[$name]['handler'] && function_exists($this->info[$name]['handler'])) {
+      $this->variables[$name] = call_user_func_array($this->info[$name]['handler'], $this->variables);
+      $this->info[$name]['handler'] = FALSE;
+    }
+    return $this->variables[$name];
+  }
+
+  /**
+   * Updates a variable.
+   *
+   * @param $name
+   *   The name of the variable to update.
+   * @param $value
+   *   The data with which to update or its EntityMetadataWrapper.
+   * @param $permanent
+   *   If TRUE, save the data later on. Only applicable for savable data types.
+   */
+  public function update($name, $value, $permanent = FALSE) {
+    $this->variables[$name] = $data;
+    return $permanent ? $this->saveChanges($name, FALSE) : $this;
+  }
+
+  /**
+   * Apply permanent changes provided variable's data type is savable.
+   *
+   * @param $name
+   *   The name of the variable to update.
+   * @param $immediate
+   *   Pass FALSE to postpone saving to later on. Then invoke it later with
+   *   set to NULL, so the data is saved only if it has been previously marked
+   *   to save it later. If TRUE is passed, it's immediately saved.
+   */
+  public function saveChanges($name, $immediate = NULL) {
+    $info = &$this->info[$name];
+    // Remember to save later on.
+    if ($immediate === FALSE && !$info['skip save']) {
+      $info['save'] = TRUE;
+      if (isset($this->blocked)) {
+        $info += array('blocked' => array());
+        $info['blocked'] += $this->blocked;
+      }
+    }
+    // Save now!
+    elseif (($immediate || $info['save']) && !$info['skip save'] && $this->isSavable($name)) {
+      rules_log('Saved variable %name of type %type.', array('%name' => $name, '%type' => $info['type']));
+
+      if (isset($this->blocked) && !empty($info['blocked'])) {
+        // Add the set of blocked elements for the recursion prevention.
+        $previously_blocked = $this->blocked;
+        $this->blocked += $info['blocked'];
+      }
+      // Actually save!
+      $this->variables[$name]->save();
+
+      if (isset($this->blocked) && isset($previously_blocked)) {
+        // Restore the state's set of blocked elements.
+        $this->blocked = $previously_blocked;
+      }
+      $info['save'] = FALSE;
+      unset($info['blocked']);
+    }
+    return $this;
+  }
+
+  /**
+   * Returns whether the variable with the given name is an savable.
+   */
+  public function isSavable($name) {
+    $entity_info = entity_get_info();
+    return isset($this->info[$name]['type']) && isset($entity_info[$this->info[$name]['type']]['save callback']);
+  }
+
+  /**
+   * Returns whether the variable with the given name is an entity.
+   */
+  public function isEntity($name) {
+    $entity_info = entity_get_info();
+    return isset($this->info[$name]['type']) && isset($entity_info[$this->info[$name]['type']]);
   }
 }
 

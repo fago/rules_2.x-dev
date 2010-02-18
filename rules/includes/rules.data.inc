@@ -248,6 +248,7 @@ class RulesDataWrapper extends RulesExtendable implements Serializable {
    *   If TRUE, save the data later on. Only applicable for savable data types.
    */
   public function update($data, $permanent = FALSE) {
+    debug('deprecated '. __FUNCTION__);
     $this->data = $data instanceof EntityMetadataWrapper ? $data->value() : $data;
     if (isset($this->wrapper) && $this->wrapper != $data) {
       // Sync with the metadata wrapper, so that selectors get the fresh data.
@@ -265,6 +266,9 @@ class RulesDataWrapper extends RulesExtendable implements Serializable {
    *   to save it later. If TRUE is passed, it's immediately saved.
    */
   public function saveChanges($immediate = NULL, $state = NULL) {
+    if (isset($state) && isset($this->name)) {
+      return $state->saveChanges($this->name, $immediate);
+    }
     // Remember to save later on.
     if ($immediate === FALSE && !$this->info['skip save']) {
       $this->info['save'] = TRUE;
