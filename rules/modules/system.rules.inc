@@ -51,35 +51,6 @@ function rules_system_event_info() {
  */
 function rules_system_data_info() {
   return array(
-    'text' => array(
-      'label' => t('text'),
-    ),
-   'decimal' => array(
-      'label' => t('decimal number'),
-      'parent' => 'text',
-    ),
-   'integer' => array(
-      'label' => t('integer'),
-      'class' => 'RulesIntegerWrapper',
-      'parent' => 'decimal',
-    ),
-   'date' => array(
-      'label' => t('date'),
-    ),
-   'duration' => array(
-      'label' => t('duration'),
-    ),
-   'boolean' => array(
-      'label' => t('truth value'),
-    ),
-   'uri' => array(
-      'label' => t('URI'),
-      'parent' => 'text',
-    ),
-   'list' => array(
-      'label' => t('list'),
-      'wrap' => TRUE,
-    ),
     'log_entry' => array(
       'label' => t('system log entry'),
       'wrap' => TRUE,
