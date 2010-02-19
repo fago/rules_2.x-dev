@@ -18,17 +18,14 @@ class RulesAction extends RulesAbstractPlugin implements RulesActionInterface {
    */
   protected function executeCallback(array $args, RulesState $state = NULL) {
     rules_log('Evaluating the action %name.', array('%name' => $this->elementName));
-    $return = $this->__call('execute', rules_unwrap_data($args));
+    $return = $this->__call('execute', rules_unwrap_data($args, $this->info['parameter']));
 
     if (is_array($return)) {
-      // $args contains the variable wrapper or directly the argument value, but
-      // $wrappers contains also any used EntityMetadataWrapper.
-      $wrappers = $state->executionArguments;
       foreach ($return as $name => $data) {
         // Update the data value using the wrapper.
-        if (isset($args[$name]) && $wrappers[$name] instanceof EntityMetadataWrapper) {
+        if (isset($args[$name]) && $args[$name] instanceof EntityMetadataWrapper) {
           try {
-            $wrappers[$name]->set($data);
+            $args[$name]->set($data);
           }
           catch (EntityMetadataWrapperException $e) {
             throw new RulesException('Unable to update the argument for parameter %name: ' . $e->getMessage(), array('@name' => $name));

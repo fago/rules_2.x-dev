@@ -134,7 +134,7 @@ function rules_system_action_info() {
         'message' => array(
           'type' => 'text',
           'label' => t('Message'),
-          'sanitized' => TRUE,
+          'sanitize' => TRUE,
         ),
         'error' => array(
           'type' => 'boolean',

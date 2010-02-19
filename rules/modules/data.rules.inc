@@ -228,7 +228,7 @@ function rules_action_data_set_access(RulesAbstractPlugin $element) {
     return FALSE;
   }
   if (isset($element->settings['data:select']) && $wrapper = $element->call('applyDataSelector', array($element->settings['data:select']))) {
-    return $wrapper->access('edit');
+    return $wrapper instanceof EntityMetadataWrapper && $wrapper->access('edit');
   }
 }
 

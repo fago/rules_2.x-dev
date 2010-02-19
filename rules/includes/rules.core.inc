@@ -415,17 +415,10 @@ abstract class RulesPlugin extends RulesExtendable implements EntityAPIInterface
   protected function checkParameterSettings() {
     $vars = $this->availableVariables();
     foreach ($this->parameterInfo() as $name => $info) {
-      if (isset($this->settings[$name . ':select']) || isset($vars[$name])) {
-        $select = isset($vars[$name]) ? $name : $this->settings[$name . ':select'];
-        $parts = explode(':', $select, 2);
-        if (!isset($vars[$parts[0]])) {
-          throw new RulesException('%plugin: Invalid data selector %selector specified.', array('%plugin' => $this->getPluginName(), '%selector' => $select));
-        }
+      if ($arg_info = $this->getArgumentInfo($name)) {
         // If we have enough metadata, check whether the types match.
-        if ($wrapper = $this->applyDataSelector($select)) {
-          if (!RulesDataWrapper::typesMatch($wrapper->info(), $info)) {
-            throw new RulesException("%plugin: The data type returned by the selector %select does not match the parameter's requirement.", array('%plugin' => $this->getPluginName(), '%select' => $select));
-          }
+        if (!RulesDataWrapper::typesMatch($arg_info, $info)) {
+          throw new RulesException("%plugin: The data type of the configured argument does not match the parameter's %name requirement.", array('%plugin' => $this->getPluginName(), '%name' => $name));
         }
       }
       elseif (isset($this->parent) && !isset($this->settings[$name]) && empty($info['optional'])) {
@@ -439,12 +432,15 @@ abstract class RulesPlugin extends RulesExtendable implements EntityAPIInterface
    * Returns the argument as configured in the element settings for the
    * parameter $name described with $info.
    */
-  protected function getArgument($name, $info, &$state) {
+  protected function getArgument($name, $info, RulesState $state) {
     if (isset($this->settings[$name . ':select']) && ($var = $state->get($this->settings[$name . ':select'])) !== NULL) {
       $arg = $var;
     }
     elseif (isset($this->settings[$name . ':select'])) {
-      $arg = $this->getSelectedVariable($this->settings[$name . ':select'], $name, $info, $state);
+      if (!($wrapper = $this->applyDataSelector($this->settings[$name . ':select'], $state))) {
+        throw new RulesException('Unable to apply data selector %selector.', array('%selector' => $selector));
+      }
+      $arg = $wrapper;
     }
     elseif (isset($this->settings[$name])) {
       $arg = $this->settings[$name];
@@ -459,26 +455,10 @@ abstract class RulesPlugin extends RulesExtendable implements EntityAPIInterface
       $arg = !empty($info['default value']) ? $info['default value'] : NULL;
     }
     // Support passing already sanitized values.
-    if ($info['type'] == 'text' && !empty($info['sanitized'])) {
-      //TODO: support a method for getting sanitized values of text wrappers,
-      // so tokens can make use of it.
+    if ($info['type'] == 'text' && !empty($info['sanitize']) && !($arg instanceof EntityMetadataWrapper)) {
       return check_plain((string)$arg);
     }
     return $arg;
-  }
-
-  protected function getSelectedVariable($selector, $name, &$info, RulesState $state) {
-    if ($wrapper = $this->applyDataSelector($selector, $state)) {
-      // Make the wrapper available for later or action implementations.
-      $state->executionArguments[$name] = $wrapper;
-      $options = array('decode' => TRUE);
-      if ($info['type'] == 'text' && !empty($info['sanitized'])) {
-        $options = array('sanitize' => TRUE);
-        unset($info['sanitized']);
-      }
-      return $wrapper->value($options);
-    }
-    throw new RulesException('Unable to apply data selector "' . check_plain($selector) . '".');
   }
 
   /**
@@ -490,29 +470,31 @@ abstract class RulesPlugin extends RulesExtendable implements EntityAPIInterface
    *   Optionally, the rules evaluation state. Only if the state is given the
    *   wrapper will actually wrap data.
    * @return EntityMetadataWrapper
-   *   The wrapper or if the selector couldn't be applied: FALSE.
+   *   The selected data, wich may but need not be a EntityMetadataWrapper or if
+   *   the selector couldn't be applied: FALSE.
    */
-  protected function applyDataSelector($selector, $state = NULL) {
+  protected function applyDataSelector($selector, RulesState $state = NULL) {
     $parts = explode(':', $selector, 2);
     // Use the evaluation state to get the wrapper.
-    if (isset($state) && ($var = $state->get($parts[0])) && $var instanceof EntityMetadataWrapper) {
+    if (isset($state) && ($var = $state->get($parts[0]))) {
       $wrapper = $var;
     }
     // If there is no evaluation state yet, so make use the variable info.
     elseif (!isset($state) && ($vars = $this->availableVariables()) && isset($vars[$parts[0]]['type'])) {
-      $wrapper = rules_wrap_data($data = NULL, $vars[$parts[0]], TRUE);
+      $wrapper = rules_wrap_data($data = NULL, $vars[$parts[0]]);
     }
-    try {
-      if (isset($wrapper) && count($parts) > 1) {
+    if (isset($wrapper) && count($parts) > 1 && $wrapper instanceof EntityMetadataWrapper) {
+      try {
         foreach (explode(':', $parts[1]) as $name) {
           $wrapper = $wrapper->get($name);
         }
       }
-      return isset($wrapper) ? $wrapper : FALSE;
+      // In case of an exception or we were unable to get a wrapper, return FALSE.
+      catch (EntityMetadataWrapperException $e) {
+        return FALSE;
+      }
     }
-    // In case of an exception or we were unable to get a wrapper, return FALSE.
-    catch (EntityMetadataWrapperException $e) { }
-    return FALSE;
+    return isset($wrapper) ? $wrapper : FALSE;
   }
 
   /**
@@ -530,6 +512,7 @@ abstract class RulesPlugin extends RulesExtendable implements EntityAPIInterface
       if ($wrapper = $this->applyDataSelector($this->settings[$name . ':select'])) {
         return $wrapper->info();
       }
+      throw new RulesException('%plugin: Invalid data selector %selector specified.', array('%plugin' => $this->getPluginName(), '%selector' => $this->settings[$name . ':select']));
     }
     elseif (isset($this->settings[$name . ':type'])) {
       return array('type' => $this->settings[$name . ':type']);
@@ -792,18 +775,14 @@ abstract class RulesAbstractPlugin extends RulesPlugin {
    * Gets the right arguments for executing this.
    */
   protected function getExecutionArguments(RulesState $state) {
-    // Make the variables for the arguments available in the state too.
-    $state->executionArguments = array();
-
     foreach ($this->info['parameter'] as $name => $info) {
       $args[$name] = $this->getArgument($name, $info, $state);
     }
     // Append the settings and the execution state. Faces will append $this.
     $args[] = $this->settings;
     $args[] = $state;
-    // Any retrieved wrapper will be automatically added to the $state too,
-    // thus we just have to append the remaining arguments.
-    $state->executionArguments += $args;
+    // Make the variables for the arguments available in the state too.
+    $state->currentArguments = $args;
     return $args;
   }
 

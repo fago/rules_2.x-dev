@@ -43,11 +43,11 @@ class RulesState extends FacesRoot {
    */
   protected $oldState = NULL;
 
-
-  //TODO: remove/rename??
-  //TODO: But how to deal with wrappers of primitive values?
-  //TODO: Maybe pass unwrap info to rules_data_unwrap.
-  public $executionArguments;
+  /**
+   * Holds the arguments while an element is executed. May be used by the
+   * element to easily access the wrapped arguments.
+   */
+  public $currentArguments;
 
 
   public function __construct(RulesPlugin $element) {
@@ -82,7 +82,7 @@ class RulesState extends FacesRoot {
     foreach ($this->save as $selector => $wrapper) {
       $this->saveNow($selector);
     }
-    unset($this->executionArguments);
+    unset($this->currentArguments);
     $state =& $element->property('state');
     $state = $this->oldState;
   }

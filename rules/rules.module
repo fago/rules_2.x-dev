@@ -282,14 +282,19 @@ function &rules_wrap_data(&$data = NULL, $info, $force = FALSE) {
  *
  * @param $data
  *   An array of wrapped data.
+ * @param $info
+ *   Optionally an array of info about how to unwrap the data. Keyed as $data.
  * @return
  *   An array containing unwrapped or passed through data.
  */
-function rules_unwrap_data(array $data) {
+function rules_unwrap_data(array $data, $info = array()) {
+  //TODO: support a method for getting sanitized values of text wrappers,
+  // so tokens can make use of it.
   foreach ($data as $key => $entry) {
     // If it's a wrapper, unwrap.
     if ($entry instanceof EntityMetadataWrapper) {
-      $data[$key] = $entry->value();
+      $options = (isset($info[$key]) ? $info[$key] : array()) + array('decode' => empty($info[$key]['sanitize']));
+      $data[$key] = $entry->value($options);
     }
   }
   return $data;

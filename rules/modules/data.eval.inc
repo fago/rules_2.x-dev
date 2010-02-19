@@ -13,7 +13,7 @@
  * Action: Modify data.
  */
 function rules_action_data_set($data, $value, $settings, $state, $element) {
-  $wrapper = $state->executionArguments['data'];
+  $wrapper = $state->currentArguments['data'];
   try {
     // Update the value first then save changes, if possible.
     $wrapper->set($value);
@@ -65,7 +65,7 @@ function rules_action_data_create($type) {
  * Action: Save data
  */
 function rules_action_data_save($data, $immediate = FALSE, $settings, $state, $element) {
-  $wrapper = $state->executionArguments['data'];
+  $wrapper = $state->currentArguments['data'];
   $state->saveChanges($settings['data:select'], $wrapper, $immediate);
 }
 
@@ -73,7 +73,7 @@ function rules_action_data_save($data, $immediate = FALSE, $settings, $state, $e
  * Action: Delete data
  */
 function rules_action_data_delete($data, $settings, $state, $element) {
-  $wrapper = $state->executionArguments['data'];
+  $wrapper = $state->currentArguments['data'];
   $wrapper->delete();
 }
 
