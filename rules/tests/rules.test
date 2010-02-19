@@ -433,12 +433,12 @@ function rules_test_action() {
 /**
  * Test rules data wrappers.
  */
-class RulesTestDataWrappersCase extends DrupalWebTestCase {
+class RulesTestDataCase extends DrupalWebTestCase {
 
   static function getInfo() {
     return array(
-      'name' => 'Rules Data Wrapper tests',
-      'description' => 'Tests rules data wrappers.',
+      'name' => 'Rules Data tests',
+      'description' => 'Tests rules data saving and type matching.',
       'group' => 'Rules',
     );
   }
@@ -450,29 +450,38 @@ class RulesTestDataWrappersCase extends DrupalWebTestCase {
   }
 
   /**
-   * Tests saving data wrappers.
+   * Tests intelligently saving data.
    */
-  function testDataWrapperSaving() {
-    //TODO: update to directly test the state class.
-    return;
+  function testDataSaving() {
     $node = $this->drupalCreateNode();
-    $wrapper = new RulesDataEntityWrapper($node, array(
-      'type' => 'node',
-    ));
+    $state = new RulesState(rule());
+    $state->addVariable('node', $node, array('type' => 'node'));
+    $wrapper = $state->get('node');
     $node->title = 'test';
-    $wrapper->update($node);
+    $wrapper->set($node);
+    $state->saveChanges('node', $wrapper, FALSE);
+
     $this->assertFalse($this->drupalGetNodeByTitle('test'), 'Changes have not been saved.');
-    $wrapper->update($node, TRUE)->saveChanges();
+    $state->saveChanges('node', $wrapper, TRUE);
     $this->assertTrue($this->drupalGetNodeByTitle('test'), 'Changes have been saved.');
 
     // Test skipping saving.
-    $wrapper = new RulesDataEntityWrapper($node, array(
+    $state->addVariable('node2', $node, array(
       'type' => 'node',
       'skip save' => TRUE,
     ));
+    $wrapper = $state->get('node2');
     $node->title = 'test2';
-    $wrapper->update($node, TRUE)->saveChanges();
+    $wrapper->set($node);
+    $state->saveChanges('node2', $wrapper, TRUE);
     $this->assertFalse($this->drupalGetNodeByTitle('test2'), 'Changes have not been saved.');
+
+    // Try saving a non-entity wrapper, which should result in saving the
+    // parent entity containing the property.
+    $wrapper = $state->get('node');
+    $wrapper->title->set('test3');
+    $state->saveChanges('node:title', $wrapper, TRUE);
+    $this->assertTrue($this->drupalGetNodeByTitle('test3'), 'Parent entity has been saved.');
   }
 
   /**
@@ -481,18 +490,18 @@ class RulesTestDataWrappersCase extends DrupalWebTestCase {
   function testTypeMatching() {
     $entity = array('type' => 'entity');
     $node = array('type' => 'node');
-    $this->assertTrue(RulesDataWrapper::typesMatch($node, $entity), 'Types match.');
-    $this->assertFalse(RulesDataWrapper::typesMatch($entity, $node), 'Types don\'t match.');
+    $this->assertTrue(RulesData::typesMatch($node, $entity), 'Types match.');
+    $this->assertFalse(RulesData::typesMatch($entity, $node), 'Types don\'t match.');
 
-    $this->assertTrue(RulesDataWrapper::typesMatch($node + array('bundle' => 'page'), $node), 'Types match.');
-    $this->assertTrue(RulesDataWrapper::typesMatch($node + array('bundle' => 'page'), $entity), 'Types match.');
-    $this->assertTrue(RulesDataWrapper::typesMatch(array('type' => 'list<node>'), array('type' => 'list')), 'Types match.');
-    $this->assertTrue(RulesDataWrapper::typesMatch($node + array('bundle' => 'page'), $node + array('bundles' => array('page', 'story'))), 'Types match.');
-    $this->assertFalse(RulesDataWrapper::typesMatch($node, $node + array('bundles' => array('page', 'story'))), 'Types don\'t match.');
+    $this->assertTrue(RulesData::typesMatch($node + array('bundle' => 'page'), $node), 'Types match.');
+    $this->assertTrue(RulesData::typesMatch($node + array('bundle' => 'page'), $entity), 'Types match.');
+    $this->assertTrue(RulesData::typesMatch(array('type' => 'list<node>'), array('type' => 'list')), 'Types match.');
+    $this->assertTrue(RulesData::typesMatch($node + array('bundle' => 'page'), $node + array('bundles' => array('page', 'story'))), 'Types match.');
+    $this->assertFalse(RulesData::typesMatch($node, $node + array('bundles' => array('page', 'story'))), 'Types don\'t match.');
 
     // Test that a type matches its grand-parent type (text > decimal > integer)
-    $this->assertTrue(RulesDataWrapper::typesMatch(array('type' => 'integer'), array('type' => 'text')), 'Types match.');
-    $this->assertFalse(RulesDataWrapper::typesMatch(array('type' => 'text'), array('type' => 'integer')), 'Types don\'t match.');
+    $this->assertTrue(RulesData::typesMatch(array('type' => 'integer'), array('type' => 'text')), 'Types match.');
+    $this->assertFalse(RulesData::typesMatch(array('type' => 'text'), array('type' => 'integer')), 'Types don\'t match.');
   }
 }
 
@@ -817,8 +826,8 @@ class RulesIntegrationTestCase extends DrupalWebTestCase {
 
     // Test assigning and remove a term from an article.
     $rule = rule(array('node' => array('type' => 'node', 'bundle' => 'article')));
-    $term_wrapped = rules_wrap_data($term->tid, array('type' => 'taxonomy_term', 'loaded' => FALSE));
-    $term_wrapped2 = rules_wrap_data($term2->tid, array('type' => 'taxonomy_term', 'loaded' => FALSE));
+    $term_wrapped = rules_wrap_data($term->tid, array('type' => 'taxonomy_term'));
+    $term_wrapped2 = rules_wrap_data($term2->tid, array('type' => 'taxonomy_term'));
     $rule->action('list_add', array('list:select' => 'node:taxonomy-tags', 'item' => $term_wrapped2));
     $rule->action('list_remove', array('list:select' => 'node:taxonomy-tags', 'item' => $term_wrapped));
     $rule->execute($node);

@@ -417,7 +417,7 @@ abstract class RulesPlugin extends RulesExtendable implements EntityAPIInterface
     foreach ($this->parameterInfo() as $name => $info) {
       if ($arg_info = $this->getArgumentInfo($name)) {
         // If we have enough metadata, check whether the types match.
-        if (!RulesDataWrapper::typesMatch($arg_info, $info)) {
+        if (!RulesData::typesMatch($arg_info, $info)) {
           throw new RulesException("%plugin: The data type of the configured argument does not match the parameter's %name requirement.", array('%plugin' => $this->getPluginName(), '%name' => $name));
         }
       }

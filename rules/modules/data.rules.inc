@@ -389,7 +389,7 @@ function rules_data_validate_list_item_type(RulesAbstractPlugin $element) {
   $list_info = $this->getArgumentInfo('list');
   $list_info['type'] = isset($list_info['type']) ? entity_metadata_list_extract_type($list_info['type']) : FALSE;
   if (!empty($list_info['type']) && ($item_info = $this->getArgumentInfo('item'))) {
-    if (!RulesDataWrapper::typesMatch($item_info, $list_info)) {
+    if (!RulesData::typesMatch($item_info, $list_info)) {
       throw new RulesException('The item specified is of an invalid type.');
     }
   }

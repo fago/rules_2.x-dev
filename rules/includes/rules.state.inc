@@ -2,7 +2,7 @@
 // $Id$
 
 /**
- * @file Contains the rules state class.
+ * @file Contains the state and data related stuff.
  */
 
 /**
@@ -182,15 +182,7 @@ class RulesState extends FacesRoot {
   public function saveChanges($selector, $wrapper, $immediate = FALSE) {
     $info = $wrapper->info();
     if (!$info['skip save'] && $this->isSavable($wrapper)) {
-      // Remember to save later on.
-      if ($immediate === FALSE) {
-        $this->saveLater($selector, $wrapper);
-      }
-      // Save now!
-      elseif ($immediate) {
-        $this->save[$selector] = array($wrapper, $this->blocked);
-        $this->saveNow($selector);
-      }
+      $this->save($selector, $wrapper, $immediate);
     }
     // No entity, so try saving the parent.
     elseif (!$info['skip save'] && isset($info['parent']) && !($wrapper instanceof EntityDrupalWrapper)) {
@@ -202,15 +194,26 @@ class RulesState extends FacesRoot {
   }
 
   /**
-   * Remembers to save the wrapper on cleanup.
+   * Remembers to save the wrapper on cleanup or does it now.
    */
-  protected function saveLater($selector, EntityMetadataWrapper $wrapper) {
-    if (isset($this->save[$selector]) && $this->save[$selector][0]->getIdentifier() != $wrapper->getIdentifier()) {
-      // The wrapper is already in there, but now wraps another entity. So first
-      // save the old one, then remember the new one to save it later.
+  protected function save($selector, EntityMetadataWrapper $wrapper, $immediate) {
+    if (isset($this->save[$selector])) {
+      if ($this->save[$selector][0]->getIdentifier() == $wrapper->getIdentifier()) {
+        // The entity is already remembered. So do a combined save.
+        $this->save[$selector][1] += $this->blocked;
+      }
+      else {
+        // The wrapper is already in there, but wraps another entity. So first
+        // save the old one, then care about the new one.
+        $this->saveNow($selector);
+      }
+    }
+    if (!isset($this->save[$selector])) {
+      $this->save[$selector] = array(clone $wrapper, $this->blocked);
+    }
+    if ($immediate) {
       $this->saveNow($selector);
     }
-    $this->save[$selector] = array(clone $wrapper, $this->blocked);
   }
 
   /**
@@ -232,4 +235,65 @@ class RulesState extends FacesRoot {
   }
 }
 
+/**
+ * A class holding static methods related to data.
+ */
+class RulesData  {
+
+  /**
+   * Returns whether the type match. They match if type1 is compatible to type2.
+   *
+   * @param $var_info
+   *   The name of the type to check for whether it is compatible to type2.
+   * @param $param_info
+   *   The type expression to check for.
+   * @return
+   *   Whether the types match.
+   */
+  public static function typesMatch($var_info, $param_info) {
+    $var_type = $var_info['type'];
+    $param_type = $param_info['type'];
+
+    if ($param_type == '*' || $param_type == 'unknown') {
+      return TRUE;
+    }
+
+    if ($var_type == $param_type) {
+      // Make sure the bundle matches, if specified by the parameter.
+      return !isset($param_info['bundles']) || isset($var_info['bundle']) && in_array($var_info['bundle'], $param_info['bundles']);
+    }
+
+    // Parameters may specify multiple types using an array.
+    $valid_types = is_array($param_type) ? $param_type : array($param_type);
+    if (in_array($var_type, $valid_types)) {
+      return TRUE;
+    }
+
+    // Check for sub-type relationships.
+    if (!isset($param_info['bundles'])) {
+      $cache = &rules_get_cache();
+      self::typeCalcAncestors($cache, $var_type);
+
+      // If one of the types is an ancestor return TRUE.
+      return (bool)array_intersect_key($cache['data_info'][$var_type]['ancestors'], array_flip($valid_types));
+    }
+    return FALSE;
+  }
+
+  protected static function typeCalcAncestors(&$cache, $type) {
+    if (!isset($cache['data_info'][$type]['ancestors'])) {
+      $cache['data_info'][$type]['ancestors'] = array();
+      if (isset($cache['data_info'][$type]['parent']) && $parent = $cache['data_info'][$type]['parent']) {
+        $cache['data_info'][$type]['ancestors'][$parent] = TRUE;
+        self::typeCalcAncestors($cache, $parent);
+        // Add all parent ancestors to our own ancestors.
+        $cache['data_info'][$type]['ancestors'] += $cache['data_info'][$parent]['ancestors'];
+      }
+      // For special lists like list<node> add in "list" as valid parent.
+      if (entity_metadata_list_extract_type($type)) {
+        $cache['data_info'][$type]['ancestors']['list'] = TRUE;
+      }
+    }
+  }
+}
 

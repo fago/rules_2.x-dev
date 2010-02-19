@@ -120,8 +120,10 @@ function rules_condition_data_is($data, $op, $value) {
   }
 }
 
+/*
+Classes are not used but keep the comments for now.
 
-class RulesTextWrapper extends RulesDataWrapper {
+class RulesTextWrapper extends RulesData {
   // TODO: input form
   // TODO: use input evaluator in input form
 
@@ -142,21 +144,21 @@ class RulesIntegerWrapper extends RulesDecimalWrapper {
   protected $itemName = 'integer';
 }
 
-class RulesDateWrapper extends RulesDataWrapper {
+class RulesDateWrapper extends RulesData {
   // TODO: input form
   // TODO: customize selector form and add offset (duration)
 
   protected $itemName = 'date';
 }
 
-class RulesDurationWrapper extends RulesDataWrapper {
+class RulesDurationWrapper extends RulesData {
   // TODO: input form
   // TODO: use input evaluator in input form (calculation)
 
   protected $itemName = 'duration';
 }
 
-class RulesBooleanWrapper extends RulesDataWrapper {
+class RulesBooleanWrapper extends RulesData {
   // TODO: input form
   // TODO: customize selector form and add negation option
 
@@ -169,4 +171,4 @@ class RulesURIWrapper extends RulesTextWrapper {
 
   protected $itemName = 'uri';
 }
-
+*/
