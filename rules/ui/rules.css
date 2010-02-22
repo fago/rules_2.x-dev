@@ -1,0 +1,46 @@
+@CHARSET "UTF-8";
+
+.rules_element {
+  border:1px solid #ACACAC;
+  max-width:250px;
+  padding: 3px;
+  min-height:66px;
+}
+
+.rules_element_head {
+  border-bottom:1px solid #ACACAC;
+  text-align: center;
+  font-weight: bold;
+}
+
+.rules_element_head {
+  border-bottom:1px solid #ACACAC;
+  text-align: center;
+}
+
+div.rules_element_parameter {
+  font-style: italic;
+}
+
+ul.rules_element_list {
+  font-style: normal;
+}
+
+li.rules_element_list {
+  font-style: normal;
+  list-style-type: none;
+}
+
+.rules_element_operator {
+  position: relative;
+  background-image: url("hatch.png");
+  border: 1px solid #ACACAC;
+  border-top: 0px none;
+  width:60px;
+  float:right;
+  padding-left:5px; 
+}
+
+.rules_element_child {
+  border-top:1px solid #ACACAC;  
+}
