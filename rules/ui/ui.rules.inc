@@ -1,37 +1,9 @@
 <?php
-//$Id$
+// $Id$
 
-class RulesConditionUI {
-  public function form(&$form, &$form_state, $options = array(), $condition) {
-  }
-}
-
-class RulesActionUI extends FacesExtender {
-
-  public function implementsFaces() {
-    return array('RulesPluginUiInterface');
-  }
-
-  public function form(&$form, &$form_state, $options = array(), $action) {
-    $form['#prefix'] = '<div>';
-    $form['#suffix'] = '</div>';
-    $form['head'] = array(
-      '#markup' => $action->getPluginName(),
-      '#prefix' => '<div>',
-      '#suffix' => '</div>',
-    );
-    $form['parameter'] = array(
-      '#markup' => t('Paramter:'),
-      '#prefix' => '<div>',
-      '#suffix' => '</div>'
-    );
-  }
-}
-
-function theme_rules_element_form($form) {
-
-}
-
+/**
+ * @file Contains ui functions for rules.
+ */
 class RulesReactionRuleUI extends FacesExtender {
 
   public function implementsFaces() {
@@ -84,11 +56,14 @@ class RulesReactionRuleUI extends FacesExtender {
       '#markup' => t(l('+ Add event', RULES_ADMIN_RULE_PATH . '/add')),
     );
 
-
     $form['elements']['conditions'] = array(
       '#type' => 'fieldset',
       '#title' => t('If:'),
     );
+
+    foreach($rule->conditions() as $id => $condition) {
+      $condition->form($form['elements']['conditions']['elements'], $form_state);
+    }
 
     $form['elements']['conditions']['add'] = array(
       '#markup' => t(l('+ Add condition', RULES_ADMIN_RULE_PATH . '/add')),
@@ -101,7 +76,7 @@ class RulesReactionRuleUI extends FacesExtender {
     );
 
     foreach ($rule->actions() as $id => $action) {
-      $action->form($form['elements']['actions'][$id], $form_state);
+      $action->form($form['elements']['actions']['elements'][$id], $form_state);
     }
 
     $form['elements']['actions']['add'] = array(

@@ -70,7 +70,17 @@ function rules_admin_menu() {
     'access arguments' => array('administer rules'),
     'type' => MENU_LOCAL_TASK,
     'file' => 'rules_admin.rule_forms.inc',
-  'weight' => 1,
+    'weight' => 1,
   );
   return $items;
 }
+
+function rules_admin_theme() {
+  return array(
+    'rules_elements' => array(
+      'render element' => 'form',
+      'file' => 'rules_admin.inc',
+    ),
+  );
+}
+

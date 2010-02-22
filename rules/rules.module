@@ -323,7 +323,9 @@ function rules_rules_plugin_info() {
       'extenders' => array (
         'RulesPluginImplInterface' => array(
           'class' => 'RulesAbstractPluginDefaults',
-          //'file' => '',
+        ),
+        'RulesElementsUI' => array(
+          'class' => 'RulesElementsImplUI',
         ),
       ),
     ),
@@ -333,10 +335,9 @@ function rules_rules_plugin_info() {
         'RulesPluginImplInterface' => array(
           'class' => 'RulesAbstractPluginDefaults',
         ),
-        'RulesPluginUiInterface' => array(
+        'RulesElementsUI' => array(
           'class' => 'RulesActionUI',
-        )
-
+        ),
       ),
     ),
     'or' => array(
@@ -356,7 +357,8 @@ function rules_rules_plugin_info() {
       ),
     ),
     'loop' => array(
-      'class' => 'RulesLoop'
+      'class' => 'RulesLoop',
+      'class' => 'RulesAction',
     ),
     'reaction rule' => array(
       'class' => 'RulesReactionRule',

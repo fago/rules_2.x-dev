@@ -19,4 +19,6 @@ files[] = modules/system.rules.inc
 files[] = modules/taxonomy.rules.inc
 files[] = modules/user.rules.inc
 files[] = ui/ui.core.inc
+files[] = ui/ui.elements.inc
+files[] = ui/ui.rules.inc
 dependencies[] = entity_metadata
