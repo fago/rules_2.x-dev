@@ -358,7 +358,6 @@ function rules_rules_plugin_info() {
     ),
     'loop' => array(
       'class' => 'RulesLoop',
-      'class' => 'RulesAction',
     ),
     'reaction rule' => array(
       'class' => 'RulesReactionRule',
