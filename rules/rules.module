@@ -324,8 +324,8 @@ function rules_rules_plugin_info() {
         'RulesPluginImplInterface' => array(
           'class' => 'RulesAbstractPluginDefaults',
         ),
-        'RulesElementsUI' => array(
-          'class' => 'RulesElementsImplUI',
+        'RulesPluginUI' => array(
+          'class' => 'RulesConditionUI',
         ),
       ),
     ),
@@ -335,16 +335,26 @@ function rules_rules_plugin_info() {
         'RulesPluginImplInterface' => array(
           'class' => 'RulesAbstractPluginDefaults',
         ),
-        'RulesElementsUI' => array(
+        'RulesPluginUI' => array(
           'class' => 'RulesActionUI',
         ),
       ),
     ),
     'or' => array(
       'class' => 'RulesOr',
+      'extenders' => array(
+        'RulesPluginUI' => array(
+          'class' => 'RulesContainerUI',
+        ),
+      ),
     ),
     'and' => array(
       'class' => 'RulesAnd',
+      'extenders' => array(
+        'RulesPluginUI' => array(
+          'class' => 'RulesContainerUI',
+        ),
+      ),
     ),
     'rule' => array(
       'class' => 'Rule',
@@ -358,6 +368,11 @@ function rules_rules_plugin_info() {
     ),
     'loop' => array(
       'class' => 'RulesLoop',
+      'extenders' => array(
+        'RulesPluginUI' => array(
+          'class' => 'RulesContainerUI',
+        ),
+      ),
     ),
     'reaction rule' => array(
       'class' => 'RulesReactionRule',
@@ -607,4 +622,16 @@ function rules_update_array(array $array, array $update) {
  */
 function rules_theme_registry_alter(&$items) {
   array_unshift($items['page']['preprocess functions'], '_rules_action_drupal_goto_handler');
+}
+
+/**
+ * Implementation of hook_theme
+ */
+function rules_theme() {
+  return array(
+    'rules_plugins' => array(
+      'render element' => 'form',
+      'file' => '/ui/ui.theme.inc',
+    ),
+  );
 }

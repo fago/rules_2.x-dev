@@ -74,13 +74,3 @@ function rules_admin_menu() {
   );
   return $items;
 }
-
-function rules_admin_theme() {
-  return array(
-    'rules_elements' => array(
-      'render element' => 'form',
-      'file' => 'rules_admin.inc',
-    ),
-  );
-}
-

@@ -8,8 +8,8 @@
 interface RulesPluginUI extends RulesPluginUiInterface  {
   public function getName();
   public function getLabel();
-  public function getParameters(&$form);
-  public function getChilds(&$form);
+  public function getSettingOverview(&$form);
+  public function getChilds(&$form, &$form_state);
 }
 
 class RulesPluginUIImpl extends FacesExtender {
@@ -19,32 +19,26 @@ class RulesPluginUIImpl extends FacesExtender {
 
   public function form(&$form, &$form_state, $options = array(), $element) {
     $form = array();
-    $form['#theme'] = 'rules_elements';
+    $form['#theme'] = 'rules_plugins';
     $form['head'] = array(
       '#markup' => $element->getName(),
     );
 
-    $form['operator']['edit'] = array(
-      '#markup' => 'edit',
-    );
-    $form['operator']['delete'] = array(
-      '#markup' => 'delete',
-    );
+    $form['operator'] = $element->operations();
 
-    $form['parameter'] = array(
-      '#markup' => t('Parameter:'),
-    );
-    $element->__call('getParameters', array(&$form['parameter']));
+    $form['settings'] = array();
+    $element->__call('getSettingOverview', array(&$form['settings']));
 
     $form['childs'] = array();
-    $element->__call('getChilds', array(&$form['childs']));
+    $element->__call('getChilds', array(&$form['childs'], &$form_state));
   }
 
   public function getName($element){
     return $element->getElementName();
   }
 
-  public function getParameters(&$form, $element) {
+  public function getSettingOverview(&$form, $element) {
+    $form['#markup'] = t('Parameter:');
     foreach($element->parameterInfo() as $name => $parameter) {
       $form[$name] = array(
         '#markup' => $name,
@@ -52,22 +46,56 @@ class RulesPluginUIImpl extends FacesExtender {
     }
   }
 
-  public function getChilds(&$form, $element) {}
+  public function getChilds(&$form, &$form_state, $element) {}
+
+  public function operations() {
+    $form = array();
+    $form['edit'] = array(
+      '#markup' => 'edit',
+    );
+    $form['delete'] = array(
+      '#markup' => 'delete',
+    );
+    return $form;
+  }
 
 }
 
 class RulesConditionUI extends RulesPluginUIImpl {
-  public function getChilds(&$form, $condition) {}
 }
 
 class RulesActionUI extends RulesPluginUIImpl {
 }
 
-class RulesLoopUI extends RulesPluginUIImpl {
+class RulesContainerUI extends RulesPluginUIImpl {
+  public function getName() {
+    return 'Loop';
+  }
 
-  public function getChilds(&$form, $action) {
-    $form['test'] = array(
-      '#markup' => 'test',
+  public function getChilds(&$form, &$form_state, $loop) {
+    foreach ($loop as $id => $children) {
+      $children->form($form[$id], $form_state);
+    }
+  }
+
+  public function operations() {
+    $form = array();
+    $form['edit'] = array(
+      '#markup' => 'edit',
     );
+    $form['delete'] = array(
+      '#markup' => 'delete',
+    );
+    $form['add_or'] = array(
+      '#markup' => '+ Add or',
+    );
+    $form['add_and'] = array(
+      '#markup' => '+ Add and',
+    );
+    $form['add_loop'] = array(
+      '#markup' => '+ Add Loop',
+    );
+
+    return $form;
   }
 }
