@@ -139,7 +139,7 @@ class Rule extends RulesActionContainer {
    * @return RulesRecursiveElementIterator
    */
   public function actions() {
-    return $this->getIterator();
+    return parent::getIterator();
   }
 
   /**
@@ -192,6 +192,13 @@ class Rule extends RulesActionContainer {
     }
     parent::destroy();
   }
+
+  public function getIterator() {
+    $array = empty($this->conditions) ? array() : $this->conditions->children;
+    $array = array_merge($array, $this->children);
+    return new RulesRecursiveElementIterator($array);
+  }
+
 }
 
 /**

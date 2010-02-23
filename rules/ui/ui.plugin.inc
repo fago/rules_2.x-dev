@@ -13,6 +13,7 @@ interface RulesPluginUI extends RulesPluginUiInterface  {
 }
 
 class RulesPluginUIImpl extends FacesExtender {
+
   public function implementsFaces() {
     return array('RulesPluginUI');
   }
@@ -21,7 +22,8 @@ class RulesPluginUIImpl extends FacesExtender {
     $form = array();
     $form['#theme'] = 'rules_plugins';
     $form['head'] = array(
-      '#markup' => $element->getName(),
+      //TODO: Remove child element id.
+      '#markup' => $element->getName() . '-' . self::childElementId($element),
     );
 
     $form['operator'] = $element->operations();
@@ -57,6 +59,52 @@ class RulesPluginUIImpl extends FacesExtender {
       '#markup' => 'delete',
     );
     return $form;
+  }
+
+
+  /**
+   * Returns the child element associated with the given id.
+   */
+  public function getChildElementById(RulesPlugin $rules_config, $id) {
+    self::indexRule($rules_config);
+    if (isset($rules_config->map[$id])) {
+      return $rules_config->map[$id];
+    }
+    return FALSE;
+  }
+
+  /**
+   * Returns the child element id of the given child.
+   */
+  public function childElementId(RulesPlugin $element) {
+    self::indexRule($element);
+    return $element->childElementId;
+  }
+
+  /**
+   * Generates child element ids for lookup up elements.
+   */
+  protected function indexRule(RulesPlugin $element, $counter = 0, &$map = array()) {
+    // Generate them only once.
+    if (!isset($element->childElementId)) {
+      if (!$counter) {
+        // Get the rules config.
+        while ($parent = $element->property('parent')) {
+          $element = $parent;
+        }
+        $element->map = array();
+        $map =& $element->map;
+      }
+      $counter++;
+      $map[$counter] = $element;
+      $element->childElementId = $counter;
+
+      if ($element instanceof RulesContainerPlugin) {
+        foreach ($element as $child) {
+          self::indexRule($child, $counter, $map);
+        }
+      }
+    }
   }
 
 }
@@ -99,3 +147,4 @@ class RulesContainerUI extends RulesPluginUIImpl {
     return $form;
   }
 }
+
