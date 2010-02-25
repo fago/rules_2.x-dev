@@ -114,6 +114,7 @@ function rules_admin_add_element($form, &$form_state, $rule, $type) {
   return $form;
 }
 
-function rules_admin_edit_element($form, &$form_state, $element) {
+function rules_admin_edit_element($form, &$form_state, $rule, $element) {
 
+  return $form;
 }

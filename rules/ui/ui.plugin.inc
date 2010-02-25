@@ -50,19 +50,6 @@ class RulesPluginUIImpl extends FacesExtender {
 
   public function getChilds(&$form, &$form_state, $element) {}
 
-  public function operations($element) {
-    $rule = 'test_watchdog';
-    $form = array();
-    $element_id = $element->getName() . '-' . self::childElementId($element);
-    $form['edit'] = array(
-      '#markup' => l(t('Edit'), RULES_ADMIN_RULE_PATH . $rule . '/edit/' . $element_id),
-    );
-    $form['delete'] = array(
-      '#markup' => l(t('Delete'), RULES_ADMIN_RULE_PATH . $rule . '/delete/' . $element_id),
-    );
-    return $form;
-  }
-
 
   /**
    * Returns the child element associated with the given id.
@@ -86,9 +73,14 @@ class RulesPluginUIImpl extends FacesExtender {
   /**
    * Generates child element ids for lookup up elements.
    */
-  protected function indexRule(RulesPlugin $element, $counter = 0, &$map = array()) {
+  protected function indexRule(RulesPlugin $element, &$map = array()) {
     // Generate them only once.
     if (!isset($element->childElementId)) {
+      $counter = &drupal_static(__FUNCTION__);
+      if (!isset($counter)) {
+        $counter = 0;
+      }
+
       if (!$counter) {
         // Get the rules config.
         while ($parent = $element->property('parent')) {
@@ -98,7 +90,9 @@ class RulesPluginUIImpl extends FacesExtender {
         $map =& $element->map;
       }
       $counter++;
-      $map[$counter] = $element;
+      if (is_array($map)){
+        $map[$counter] = $element;
+      }
       $element->childElementId = $counter;
 
       if ($element instanceof RulesContainerPlugin) {
@@ -112,9 +106,37 @@ class RulesPluginUIImpl extends FacesExtender {
 }
 
 class RulesConditionUI extends RulesPluginUIImpl {
+  public function operations($element) {
+    $form = array();
+
+    $rule = $element->getRootElement()->name;
+    $element_id = self::childElementId($element);
+
+    $form['edit'] = array(
+      '#markup' => l(t('Edit'), RULES_ADMIN_RULE_PATH . '/' . $rule . '/edit/' . $element_id . '/condition'),
+    );
+    $form['delete'] = array(
+      '#markup' => l(t('Delete'), RULES_ADMIN_RULE_PATH . '/' . $rule . '/delete/' . $element_id  . '/condition'),
+    );
+    return $form;
+  }
 }
 
 class RulesActionUI extends RulesPluginUIImpl {
+  public function operations($element) {
+    $form = array();
+
+    $rule = $element->getRootElement()->name;
+    $element_id = self::childElementId($element);
+
+    $form['edit'] = array(
+      '#markup' => l(t('Edit'), RULES_ADMIN_RULE_PATH . '/' . $rule . '/edit/' . $element_id . '/action'),
+    );
+    $form['delete'] = array(
+      '#markup' => l(t('Delete'), RULES_ADMIN_RULE_PATH . '/' . $rule . '/delete/' . $element_id  . '/action'),
+    );
+    return $form;
+  }
 }
 
 class RulesContainerUI extends RulesPluginUIImpl {
@@ -129,24 +151,26 @@ class RulesContainerUI extends RulesPluginUIImpl {
   }
 
   public function operations($element) {
-    $rule = 'rules__a 82Ot#';
-    $plugin = '0';
-    $element_id = $element->getName() . '-' . self::childElementId($element);
+    $form = array();
+
+    $rule = $element->getRootElement()->name;
+    $element_id = self::childElementId($element);
 
     $form['edit'] = array(
-      '#markup' => l(t('Edit'), RULES_ADMIN_RULE_PATH . '/edit/' . $element_id),
+      '#markup' => l(t('Edit'), RULES_ADMIN_RULE_PATH . '/' . $rule . '/edit/' . $element_id . '/container'),
     );
     $form['delete'] = array(
-      '#markup' => l(t('Delete'), RULES_ADMIN_RULE_PATH . '/delete/' . $element_id),
+      '#markup' => l(t('Delete'), RULES_ADMIN_RULE_PATH . '/' . $rule . '/delete/' . $element_id . '/container'),
     );
+
     $form['add_or'] = array(
-      '#markup' => l(t('+ Add or'), RULES_ADMIN_RULE_PATH . '/' . $rule . '/add/' . $plugin . '/or'),
+      '#markup' => l(t('+ Add or'), RULES_ADMIN_RULE_PATH . '/' . $rule . '/add/or'),
     );
     $form['add_and'] = array(
-      '#markup' => l(t('+ Add and'), RULES_ADMIN_RULE_PATH . '/' . $rule . '/add/' . $plugin . '/and'),
+      '#markup' => l(t('+ Add and'), RULES_ADMIN_RULE_PATH . '/' . $rule . '/add/and'),
     );
     $form['add_loop'] = array(
-      '#markup' => l(t('+ Add Loop'), RULES_ADMIN_RULE_PATH . '/' . $rule . '/delete/' . $plugin . '/loop'),
+      '#markup' => l(t('+ Add Loop'), RULES_ADMIN_RULE_PATH . '/' . $rule . '/delete/loop'),
     );
     return $form;
   }
