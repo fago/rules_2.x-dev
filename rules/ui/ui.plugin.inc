@@ -51,14 +51,14 @@ class RulesPluginUIImpl extends FacesExtender {
   public function getChilds(&$form, &$form_state, $element) {}
 
   public function operations($element) {
-    $rule = '';
+    $rule = 'test_watchdog';
     $form = array();
     $element_id = $element->getName() . '-' . self::childElementId($element);
     $form['edit'] = array(
-      '#markup' => l(t('Edit'), RULES_ADMIN_RULE_PATH . '/edit/'),
+      '#markup' => l(t('Edit'), RULES_ADMIN_RULE_PATH . $rule . '/edit/' . $element_id),
     );
     $form['delete'] = array(
-      '#markup' => l(t('Delete'), RULES_ADMIN_RULE_PATH . '/delete/' . $element_id),
+      '#markup' => l(t('Delete'), RULES_ADMIN_RULE_PATH . $rule . '/delete/' . $element_id),
     );
     return $form;
   }

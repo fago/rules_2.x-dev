@@ -48,7 +48,7 @@ function rules_admin_menu() {
   $items[RULES_ADMIN_RULE_PATH . '/%rules_config/add'] = array(
     'title' => 'Editing rule',
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('rules_admin_add_element', 5),
+    'page arguments' => array('rules_admin_form_edit_rule', 5),
     'access arguments' => array('administer rules'),
     'type' => MENU_CALLBACK,
     'file' => 'rules_admin.rule_forms.inc',
@@ -56,7 +56,7 @@ function rules_admin_menu() {
   $items[RULES_ADMIN_RULE_PATH . '/%rules_config/edit/%rules_element'] = array(
     'title' => 'Editing rule',
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('rules_admin_edit_element', 5, 7),
+    'page arguments' => array('rules_admin_form_edit_rule', 5, 7),
     'access arguments' => array('administer rules'),
     'load arguments' => array(5),
     'type' => MENU_CALLBACK,
@@ -93,5 +93,4 @@ function rules_admin_menu() {
 }
 
 function rules_element_load($element) {
-
 }
