@@ -48,12 +48,12 @@ class RulesReactionRuleUI extends FacesExtender {
       $form['elements']['events'][$event_name] = array(
         '#markup' => $events[$event_name]['label'],
         '#prefix' => '<div>',
-        '#suffix' => '&nbsp;' . l(t('delete'), RULES_ADMIN_RULE_PATH) . '</div>',
+        '#suffix' => '&nbsp;<span class="rules_rule_event">' . l(t('delete'), RULES_ADMIN_RULE_PATH) . '</span></div>',
       );
     }
 
     $form['elements']['events']['add'] = array(
-      '#markup' => t(l('+ Add event', RULES_ADMIN_RULE_PATH . '/add')),
+      '#markup' => t(l('+ Add event', RULES_ADMIN_RULE_PATH . '/' . $rule->name . '/add/event')),
     );
 
     $form['elements']['conditions'] = array(
@@ -66,7 +66,7 @@ class RulesReactionRuleUI extends FacesExtender {
     }
 
     $form['elements']['conditions']['add'] = array(
-      '#markup' => t(l('+ Add condition', RULES_ADMIN_RULE_PATH . '/add')),
+      '#markup' => t(l('+ Add condition', RULES_ADMIN_RULE_PATH . '/' . $rule->name . '/add/condition')),
     );
 
 
@@ -80,7 +80,7 @@ class RulesReactionRuleUI extends FacesExtender {
     }
 
     $form['elements']['actions']['add'] = array(
-      '#markup' => t(l('+ Add action', RULES_ADMIN_RULE_PATH . '/add')),
+      '#markup' => t(l('+ Add action', RULES_ADMIN_RULE_PATH . '/' . $rule->name . '/add/action')),
     );
 
     $form['submit'] = array(

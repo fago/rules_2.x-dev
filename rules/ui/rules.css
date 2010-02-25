@@ -34,6 +34,11 @@ li.rules_plugin_list {
   list-style-type: none;
 }
 
+.rules_plugin_spacer {
+  clear: both;
+  height: 10px;
+}
+
 .rules_plugin_operator {
   position: relative;
   border: 1px solid #ACACAC;

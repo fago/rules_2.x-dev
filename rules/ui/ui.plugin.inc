@@ -50,13 +50,15 @@ class RulesPluginUIImpl extends FacesExtender {
 
   public function getChilds(&$form, &$form_state, $element) {}
 
-  public function operations() {
+  public function operations($element) {
+    $rule = '';
     $form = array();
+    $element_id = $element->getName() . '-' . self::childElementId($element);
     $form['edit'] = array(
-      '#markup' => 'edit',
+      '#markup' => l(t('Edit'), RULES_ADMIN_RULE_PATH . '/edit/'),
     );
     $form['delete'] = array(
-      '#markup' => 'delete',
+      '#markup' => l(t('Delete'), RULES_ADMIN_RULE_PATH . '/delete/' . $element_id),
     );
     return $form;
   }
@@ -126,24 +128,26 @@ class RulesContainerUI extends RulesPluginUIImpl {
     }
   }
 
-  public function operations() {
-    $form = array();
+  public function operations($element) {
+    $rule = 'rules__a 82Ot#';
+    $plugin = '0';
+    $element_id = $element->getName() . '-' . self::childElementId($element);
+
     $form['edit'] = array(
-      '#markup' => 'edit',
+      '#markup' => l(t('Edit'), RULES_ADMIN_RULE_PATH . '/edit/' . $element_id),
     );
     $form['delete'] = array(
-      '#markup' => 'delete',
+      '#markup' => l(t('Delete'), RULES_ADMIN_RULE_PATH . '/delete/' . $element_id),
     );
     $form['add_or'] = array(
-      '#markup' => '+ Add or',
+      '#markup' => l(t('+ Add or'), RULES_ADMIN_RULE_PATH . '/' . $rule . '/add/' . $plugin . '/or'),
     );
     $form['add_and'] = array(
-      '#markup' => '+ Add and',
+      '#markup' => l(t('+ Add and'), RULES_ADMIN_RULE_PATH . '/' . $rule . '/add/' . $plugin . '/and'),
     );
     $form['add_loop'] = array(
-      '#markup' => '+ Add Loop',
+      '#markup' => l(t('+ Add Loop'), RULES_ADMIN_RULE_PATH . '/' . $rule . '/delete/' . $plugin . '/loop'),
     );
-
     return $form;
   }
 }

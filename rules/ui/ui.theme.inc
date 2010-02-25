@@ -4,9 +4,6 @@
 /**
  * @file Rules theme functions
  */
-
-
-
 function theme_rules_plugins($variables) {
   $form = $variables['form'];
 
@@ -38,7 +35,7 @@ function theme_rules_plugins($variables) {
   }
   $output .= '</ul>';
   $output .= '</div>';
-  $output .= '<div style="clear: both;">&nbsp;</div>';
+  $output .= '<div class="rules_plugin_spacer">&nbsp;</div>';
   if (count(element_children($form['childs']))) {
     $output .= '<div class="rules_plugin_child">';
     foreach (element_children($form['childs']) as $childs) {

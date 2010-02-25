@@ -92,3 +92,28 @@ function rules_admin_form_edit_rule_submit($form, &$form_state) {
     $rule->form_submit($form, $form_state);
   }
 }
+
+/**
+ * Add Elements
+ */
+function rules_admin_add_element($form, &$form_state, $rule, $type) {
+  if ($type == 'event') {
+    $form['events'] = array(
+      '#type' => 'fieldset',
+      '#title' => t('Add Event'),
+    );
+    $events = rules_fetch_data('event_info');
+      $form['events']['events'] = array(
+      '#type' => 'select',
+      '#title' => t('Select an event'),
+      '#options' => rules_admin_get_grouped_data('event_info'),
+    );
+    $form['submit'] = array('#type' => 'submit', '#value' => t('Add'));
+  }
+  $form_state['redirect'] = RULES_ADMIN_RULE_PATH .'/'. $rule->name;
+  return $form;
+}
+
+function rules_admin_edit_element($form, &$form_state, $element) {
+
+}
