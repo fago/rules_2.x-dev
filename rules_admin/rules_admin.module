@@ -92,19 +92,11 @@ function rules_admin_menu() {
   return $items;
 }
 
-function rules_element_load($element, $rule_name) {
-  $rule = rules_config_load($rule_name);
-  $i = 1;
-  foreach ($rule->conditions() as $condition) {
-    $i++;
-    if ($i==$element) {
-      return $condition;
-    }
-  }
-  foreach ($rule->actions() as $action) {
-    $i++;
-    if ($i==$element) {
-      return $action;
-    }
-  }
+/**
+ * Callback for loading rules configuration elements.
+ */
+function rules_element_load($element_id, $config_name) {
+  $config = rules_config_load($config_name);
+  return RulesPluginUIImpl::getChildElementById($config, $element_id);
 }
+

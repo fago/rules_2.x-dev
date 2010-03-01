@@ -612,7 +612,7 @@ function rules_update_array(array $array, array $update) {
 }
 
 /**
- * Implementation of hook_theme_registry_alter().
+ * Implements of hook_theme_registry_alter().
  *
  * We need to use the alter hook here, so we can make sure we are the first
  * prepross handler called. So drupal messages aren't consumed before the
@@ -625,7 +625,7 @@ function rules_theme_registry_alter(&$items) {
 }
 
 /**
- * Implementation of hook_theme
+ * Implements of hook_theme().
  */
 function rules_theme() {
   return array(
@@ -639,3 +639,5 @@ function rules_theme() {
     ),
   );
 }
+
+

@@ -76,10 +76,7 @@ class RulesPluginUIImpl extends FacesExtender {
   protected function indexRule(RulesPlugin $element, &$map = array()) {
     // Generate them only once.
     if (!isset($element->childElementId)) {
-      $counter = &drupal_static(__FUNCTION__);
-      if (!isset($counter)) {
-        $counter = 0;
-      }
+      $counter = &drupal_static(__FUNCTION__, 0);
 
       if (!$counter) {
         // Get the rules config.
@@ -90,14 +87,12 @@ class RulesPluginUIImpl extends FacesExtender {
         $map =& $element->map;
       }
       $counter++;
-      if (is_array($map)){
-        $map[$counter] = $element;
-      }
+      $map[$counter] = $element;
       $element->childElementId = $counter;
 
       if ($element instanceof RulesContainerPlugin) {
         foreach ($element as $child) {
-          self::indexRule($child, $counter, $map);
+          self::indexRule($child, $map);
         }
       }
     }
