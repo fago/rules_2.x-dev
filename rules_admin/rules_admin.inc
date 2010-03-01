@@ -6,23 +6,6 @@
  */
 
 /**
- * Extracts the property with the given name while keeping the keys
- *
- * @param $key The name of the property to extract
- * @param $elements An array of elements
- *
- * @return An array of extracted properties.
- */
-function rules_extract_property($elements, $key) {
-  $data = array();
-  foreach ($elements as $name => $info) {
-    $data[$name] = $info[$key];
-  }
-  return $data;
-}
-
-
-/**
  * Returns data from rules_fetch_data sorted by groups
  */
 function rules_admin_get_grouped_data($hook) {

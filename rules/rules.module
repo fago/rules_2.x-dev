@@ -612,6 +612,24 @@ function rules_update_array(array $array, array $update) {
 }
 
 /**
+ * Extracts the property with the given name.
+ *
+ * @param $arrays
+ *   An array of arrays from which a property is to be extracted.
+ * @param $key
+ *   The name of the property to extract.
+ *
+ * @return An array of extracted properties, keyed as in $arrays-
+ */
+function rules_extract_property($arrays, $key) {
+  $data = array();
+  foreach ($elements as $name => $info) {
+    $data[$name] = $info[$key];
+  }
+  return $data;
+}
+
+/**
  * Implements of hook_theme_registry_alter().
  *
  * We need to use the alter hook here, so we can make sure we are the first
