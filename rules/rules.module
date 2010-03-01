@@ -4,6 +4,10 @@
 /**
  * @file Rules engine module
  */
+
+define('RULES_UI_PATH', 'admin/config/workflow/rules');
+define('RULES_UI_RULE_PATH', RULES_UI_PATH . '/rules');
+
 spl_autoload_register('rules_autoload');
 
 /**
@@ -630,7 +634,7 @@ function rules_extract_property($arrays, $key) {
 }
 
 /**
- * Implements of hook_theme_registry_alter().
+ * Implements hook_theme_registry_alter().
  *
  * We need to use the alter hook here, so we can make sure we are the first
  * prepross handler called. So drupal messages aren't consumed before the
@@ -643,7 +647,7 @@ function rules_theme_registry_alter(&$items) {
 }
 
 /**
- * Implements of hook_theme().
+ * Implements hook_theme().
  */
 function rules_theme() {
   return array(
@@ -659,3 +663,43 @@ function rules_theme() {
 }
 
 
+/**
+ * Implements hook_menu().
+ */
+function rules_menu() {
+  $items[RULES_UI_RULE_PATH . '/%rules_config'] = array(
+    'title' => 'Editing rule',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('rules_ui_form_edit_rules_config', 5),
+    'access arguments' => array('administer rules'),
+    'type' => MENU_CALLBACK,
+    'file' => 'ui/ui.forms.inc',
+  );
+  $items[RULES_UI_RULE_PATH . '/%rules_config/add'] = array(
+    'title' => 'Add an element',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('rules_ui_add_element', 5),
+    'access arguments' => array('administer rules'),
+    'type' => MENU_CALLBACK,
+    'file' => 'ui/ui.forms.inc',
+  );
+  $items[RULES_UI_RULE_PATH . '/%rules_config/edit/%rules_element'] = array(
+    'title' => 'Editing element',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('rules_ui_edit_element', 5, 7),
+    'access arguments' => array('administer rules'),
+    'load arguments' => array(5),
+    'type' => MENU_CALLBACK,
+    'file' => 'ui/ui.forms.inc',
+  );
+
+  return $items;
+}
+
+/**
+ * Callback for loading rules configuration elements.
+ */
+function rules_element_load($element_id, $config_name) {
+  $config = rules_config_load($config_name);
+  return RulesPluginUI::getChildElementById($config, $element_id);
+}
