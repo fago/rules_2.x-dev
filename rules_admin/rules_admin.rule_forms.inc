@@ -6,8 +6,6 @@
  *   Implements rule management and configuration screens.
  */
 
-module_load_include('inc', 'rules_admin');
-
 /**
  * Reaction rules overview
  */
@@ -21,8 +19,8 @@ function rules_admin_reaction_overview($form, &$form_state) {
   $form['filter']['event'] = array(
     '#type' => 'select',
     '#title' => t('Filter by event'),
-    '#options' => array(0 => '<All>') + rules_admin_get_grouped_data('event_info'),
-    '#default_value' => isset($form_state['values']['set']) ? $form_state['values']['set'] : 0,
+    '#options' => array(0 => '<All>') + RulesPluginUI::getOptions('event_info'),
+    '#default_value' => isset($form_state['values']['event']) ? $form_state['values']['event'] : 0,
   );
   $form['filter']['category'] = array(
     '#type' => 'select',
@@ -40,20 +38,28 @@ function rules_admin_reaction_overview($form, &$form_state) {
     '#title' => t('Active rules'),
   );
   $conditions = array('event' => $event, 'plugin' => 'reaction rule', 'active' => TRUE);
-  $form['active']['table'] = rules_admin_overview_table(array_filter($conditions));
+  $form['active']['table'] = RulesPluginUI::overviewTable(array_filter($conditions), t('There are no matching active reaction rules.'));
 
 
   $form['inactive'] = array(
     '#type' => 'fieldset',
     '#title' => t('Inactive rules'),
   );
-  $conditions = array('event' => $event, 'plugin' => 'reaction rule');
-  $form['inactive']['table'] = rules_admin_overview_table((array_filter($conditions) + array('active' => FALSE)));
+  $conditions = array_filter(array('event' => $event, 'plugin' => 'reaction rule')) + array('active' => FALSE);
+  $form['inactive']['table'] = RulesPluginUI::overviewTable($conditions, t('There are no matching inactive reaction rules.'));
 
-  $form_state['rebuild'] = TRUE;
+  $form_state['#submit'] = TRUE;
 
   return $form;
 }
+
+/**
+ * Submit callback for the reaction rules overview form.
+ */
+function rules_admin_reaction_overview_submit($form, &$form_state) {
+  $form_state['rebuild'] = TRUE;
+}
+
 /**
  * Rules overview
  */
@@ -102,11 +108,10 @@ function rules_admin_add_element($form, &$form_state, $rule, $type) {
       '#type' => 'fieldset',
       '#title' => t('Add Event'),
     );
-    $events = rules_fetch_data('event_info');
-      $form['events']['events'] = array(
+    $form['events']['events'] = array(
       '#type' => 'select',
       '#title' => t('Select an event'),
-      '#options' => rules_admin_get_grouped_data('event_info'),
+      '#options' => RulesPluginUI::getOptions('event_info'),
     );
     $form['submit'] = array('#type' => 'submit', '#value' => t('Add'));
   }

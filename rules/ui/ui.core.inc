@@ -8,7 +8,7 @@
 /**
  * Plugin UI Interface.
  */
-interface RulesPluginUiInterface {
+interface RulesPluginUIInterface {
 
   /**
    * Returns the whole configuration form of this rules configuration. For rule
@@ -79,13 +79,18 @@ interface RulesPluginUiInterface {
    * //TODO: allow modules to specify them in the plugin_info hook.
    */
   public function operations();
+
+  public function getName();
+  public function getLabel();
+  public function getSettingOverview(&$form);
+  public function getChilds(&$form, &$form_state);
 }
 
 /**
  * Provides the interface used for implementing an abstract plugin by using
  * the Faces extension mechanism.
  */
-interface RulesPluginImplInterface extends RulesPluginUiInterface {
+interface RulesPluginImplInterface extends RulesPluginUIInterface {
 
   public function execute();
 

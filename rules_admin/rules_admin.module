@@ -97,6 +97,6 @@ function rules_admin_menu() {
  */
 function rules_element_load($element_id, $config_name) {
   $config = rules_config_load($config_name);
-  return RulesPluginUIImpl::getChildElementById($config, $element_id);
+  return RulesPluginUI::getChildElementById($config, $element_id);
 }
 

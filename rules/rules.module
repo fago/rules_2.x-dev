@@ -324,7 +324,7 @@ function rules_rules_plugin_info() {
         'RulesPluginImplInterface' => array(
           'class' => 'RulesAbstractPluginDefaults',
         ),
-        'RulesPluginUI' => array(
+        'RulesPluginUIInterface' => array(
           'class' => 'RulesConditionUI',
         ),
       ),
@@ -335,7 +335,7 @@ function rules_rules_plugin_info() {
         'RulesPluginImplInterface' => array(
           'class' => 'RulesAbstractPluginDefaults',
         ),
-        'RulesPluginUI' => array(
+        'RulesPluginUIInterface' => array(
           'class' => 'RulesActionUI',
         ),
       ),
@@ -343,7 +343,7 @@ function rules_rules_plugin_info() {
     'or' => array(
       'class' => 'RulesOr',
       'extenders' => array(
-        'RulesPluginUI' => array(
+        'RulesPluginUIInterface' => array(
           'class' => 'RulesContainerUI',
         ),
       ),
@@ -351,7 +351,7 @@ function rules_rules_plugin_info() {
     'and' => array(
       'class' => 'RulesAnd',
       'extenders' => array(
-        'RulesPluginUI' => array(
+        'RulesPluginUIInterface' => array(
           'class' => 'RulesContainerUI',
         ),
       ),
@@ -369,7 +369,7 @@ function rules_rules_plugin_info() {
     'loop' => array(
       'class' => 'RulesLoop',
       'extenders' => array(
-        'RulesPluginUI' => array(
+        'RulesPluginUIInterface' => array(
           'class' => 'RulesContainerUI',
         ),
       ),
@@ -378,7 +378,7 @@ function rules_rules_plugin_info() {
       'class' => 'RulesReactionRule',
       'embeddable' => FALSE,
       'extenders' => array(
-        'RulesPluginUiInterface' => array(
+        'RulesPluginUIInterface' => array(
           'class' => 'RulesReactionRuleUI',
         ),
       ),

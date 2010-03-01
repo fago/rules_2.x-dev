@@ -5,14 +5,12 @@
  * @file Contains ui functions for elements like actions and conditions.
  */
 
-interface RulesPluginUI extends RulesPluginUiInterface  {
-  public function getName();
-  public function getLabel();
-  public function getSettingOverview(&$form);
-  public function getChilds(&$form, &$form_state);
-}
 
-class RulesPluginUIImpl extends FacesExtender {
+/**
+ * Faces UI extender for all kind of Rules plugins. Provides various useful
+ * methods for any rules UI.
+ */
+class RulesPluginUI extends FacesExtender {
 
   public function implementsFaces() {
     return array('RulesPluginUI');
@@ -98,9 +96,70 @@ class RulesPluginUIImpl extends FacesExtender {
     }
   }
 
+  /**
+   * Generates the render array for a overview configuration table for arbitrary
+   * rule configs that match the given conditions.
+   *
+   * @param $conditions
+   *   An array of conditions as needed by rules_config_load_multiple().
+   * @param $empty_text
+   *   The text to display if there are no configs matching the conditions.
+   * @return Array
+   *   A renderable array.
+   */
+  public static function overviewTable($conditions = array(), $empty_text) {
+    $configs = rules_config_load_multiple(FALSE, $conditions);
+    $rows = array();
+    $event_info = rules_fetch_data('event_info');
+
+    foreach ($configs as $name => $config) {
+      $path = RULES_ADMIN_RULE_PATH . '/' . $name;
+      $row[] = l($config->label, $path);
+      // Add events if the configs are assigned to events.
+      $events = array();
+      if ($config instanceof RulesTriggerableInterface) {
+        $is_triggerable = TRUE;
+        foreach ($config->events() as $event_name) {
+          $events[] = $event_info[$event_name]['label'];
+        }
+      }
+      $row[] = implode(", ", $events);
+      $row[] = l(t('edit'), $path, array('query' => drupal_get_destination()));
+      $row[] = l(t('clone'), $path . '/clone', array('query' => drupal_get_destination()));
+      $row[] = l(t('delete'), $path . '/delete', array('query' => drupal_get_destination()));
+      $rows[] = $row;
+    }
+    $header = array(t('Label'), array('data' => !empty($is_triggerable) ? t('Event') : ''), array('data' => t('Operations'), 'colspan' => '3'));
+
+    $table = array(
+      '#theme' => 'table',
+      '#header' => $header,
+      '#rows' => $rows,
+      '#empty' => $empty_text,
+    );
+    return $table;
+  }
+
+  /**
+   * Returns an array of options to use with a select for the items specified
+   * in the given hook.
+   */
+  public static function getOptions($hook) {
+    $sorted_data = array();
+    $data = rules_fetch_data($hook);
+    foreach ($data as $name => $set) {
+      $sorted_data[ucfirst($set['group'])][$name] = $set['label'];
+    }
+    foreach ($sorted_data as $key => $set) {
+      asort($set);
+      $sorted_data[$key] = $set;
+    }
+    return $sorted_data;
+  }
+
 }
 
-class RulesConditionUI extends RulesPluginUIImpl {
+class RulesConditionUI extends RulesPluginUI {
   public function operations($element) {
     $form = array();
 
@@ -117,7 +176,7 @@ class RulesConditionUI extends RulesPluginUIImpl {
   }
 }
 
-class RulesActionUI extends RulesPluginUIImpl {
+class RulesActionUI extends RulesPluginUI {
   public function operations($element) {
     $form = array();
 
@@ -134,7 +193,7 @@ class RulesActionUI extends RulesPluginUIImpl {
   }
 }
 
-class RulesContainerUI extends RulesPluginUIImpl {
+class RulesContainerUI extends RulesPluginUI {
   public function getName() {
     return 'Loop';
   }
