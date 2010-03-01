@@ -13,7 +13,7 @@
 class RulesPluginUI extends FacesExtender {
 
   public function implementsFaces() {
-    return array('RulesPluginUI');
+    return array('RulesPluginUIInterface');
   }
 
   public function form(&$form, &$form_state, $options = array(), $element) {

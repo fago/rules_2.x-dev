@@ -4,11 +4,7 @@
 /**
  * @file Contains ui functions for rules.
  */
-class RulesReactionRuleUI extends FacesExtender {
-
-  public function implementsFaces() {
-    return array('RulesPluginUiInterface');
-  }
+class RulesReactionRuleUI extends RulesPluginUI {
 
   public function form(&$form, &$form_state, $options = array(), $rule) {
     $form['settings'] = array(
