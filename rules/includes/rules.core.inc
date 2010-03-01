@@ -656,6 +656,16 @@ abstract class RulesPlugin extends RulesExtendable {
     }
     return $element;
   }
+
+  /**
+   * Returns the label of the element.
+   */
+  public function label() {
+    if (isset($this->label)) {
+      return $this->label;
+    }
+    return isset($this->info['label']) ? $this->info['label'] : t('unlabeled');
+  }
 }
 
 

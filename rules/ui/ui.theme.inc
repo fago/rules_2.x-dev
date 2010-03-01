@@ -36,7 +36,7 @@ function theme_rules_plugins($variables) {
   $output .= '</ul>';
   $output .= '</div>';
   $output .= '<div class="rules_plugin_spacer">&nbsp;</div>';
-  if (count(element_children($form['childs']))) {
+  if (isset($form['childs']) && count(element_children($form['childs']))) {
     $output .= '<div class="rules_plugin_child">';
     foreach (element_children($form['childs']) as $childs) {
       $output .= drupal_render($form['childs']);

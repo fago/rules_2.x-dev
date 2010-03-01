@@ -111,7 +111,7 @@ class Rule extends RulesActionContainer {
    * Whether this rule may fire recursive. For safety, this defaults to FALSE.
    */
   public $recursion = FALSE;
-  public $label = 'unlabelled';
+  public $label = 'unlabeled';
 
   /**
    * Get an iterator over all contained conditions. Note that this iterator also

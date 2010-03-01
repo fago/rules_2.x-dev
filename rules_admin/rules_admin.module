@@ -6,7 +6,7 @@
  */
 
 define('RULES_ADMIN_REACION_PATH', RULES_UI_PATH . '/reaction');
-define('RULES_ADMIN_SET_PATH', RULES_UI_PATH . '/rule_sets');
+define('RULES_ADMIN_COMPONENT_PATH', RULES_UI_PATH . '/components');
 
 /**
  * Implementation of hook_menu()
@@ -35,7 +35,7 @@ function rules_admin_menu() {
     'file' => 'rules_admin.inc',
     'weight' => 0,
   );
-  $items[RULES_ADMIN_SET_PATH] = array(
+  $items[RULES_ADMIN_COMPONENT_PATH] = array(
     'title' => 'Components',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('rules_admin_components_overview'),
@@ -44,7 +44,7 @@ function rules_admin_menu() {
     'file' => 'rules_admin.inc',
     'weight' => 0,
   );
-  $items[RULES_ADMIN_SET_PATH . '/add'] = array(
+  $items[RULES_ADMIN_COMPONENT_PATH . '/add'] = array(
     'title' => 'Add a new component',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('rules_admin_components_overview'),

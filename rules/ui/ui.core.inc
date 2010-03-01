@@ -80,10 +80,6 @@ interface RulesPluginUIInterface {
    */
   public function operations();
 
-  public function getName();
-  public function getLabel();
-  public function getSettingOverview(&$form);
-  public function getChilds(&$form, &$form_state);
 }
 
 /**
@@ -169,33 +165,22 @@ class RulesPluginUI extends FacesExtender {
     $form['#theme'] = 'rules_plugins';
     $form['head'] = array(
       //TODO: Remove child element id.
-      '#markup' => $element->getName() . '-' . self::childElementId($element),
+      '#markup' => check_plain($element->label()) . '-' . self::childElementId($element),
     );
 
     $form['operator'] = $element->operations();
-
-    $form['settings'] = array();
-    $element->__call('getSettingOverview', array(&$form['settings']));
-
-    $form['childs'] = array();
-    $element->__call('getChilds', array(&$form['childs'], &$form_state));
+    $form['settings'] = $element->buildContent();
   }
 
-  public function getName($element){
-    return $element->getElementName();
-  }
-
-  public function getSettingOverview(&$form, $element) {
+  public function buildContent($element) {
     $form['#markup'] = t('Parameter:');
     foreach($element->parameterInfo() as $name => $parameter) {
       $form[$name] = array(
         '#markup' => $name,
       );
     }
+    return $form;
   }
-
-  public function getChilds(&$form, &$form_state, $element) {}
-
 
   /**
    * Returns the child element associated with the given id.
@@ -309,15 +294,7 @@ class RulesPluginUI extends FacesExtender {
 
 
 class RulesContainerUI extends RulesPluginUI {
-  public function getName() {
-    return 'Loop';
-  }
 
-  public function getChilds(&$form, &$form_state, $loop) {
-    foreach ($loop as $id => $children) {
-      $children->form($form[$id], $form_state);
-    }
-  }
 
   public function operations($element) {
     $form = array();
