@@ -348,7 +348,7 @@ function rules_rules_plugin_info() {
       'class' => 'RulesOr',
       'extenders' => array(
         'RulesPluginUIInterface' => array(
-          'class' => 'RulesContainerUI',
+          'class' => 'RulesPluginContainerUI',
         ),
       ),
     ),
@@ -356,7 +356,7 @@ function rules_rules_plugin_info() {
       'class' => 'RulesAnd',
       'extenders' => array(
         'RulesPluginUIInterface' => array(
-          'class' => 'RulesContainerUI',
+          'class' => 'RulesPluginContainerUI',
         ),
       ),
     ),
@@ -374,7 +374,7 @@ function rules_rules_plugin_info() {
       'class' => 'RulesLoop',
       'extenders' => array(
         'RulesPluginUIInterface' => array(
-          'class' => 'RulesContainerUI',
+          'class' => 'RulesPluginContainerUI',
         ),
       ),
     ),
@@ -655,7 +655,7 @@ function rules_theme() {
       'render element' => 'form',
       'file' => '/ui/ui.theme.inc',
     ),
-    'rules_plugins' => array(
+    'rules_element_view' => array(
       'render element' => 'form',
       'file' => '/ui/ui.theme.inc',
     ),

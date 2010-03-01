@@ -24,8 +24,6 @@ interface RulesPluginUIInterface {
    *    - 'show settings': Whether to include the 'settings' fieldset for
    *      editing configuration settings like the label or categories. Defaults
    *      to FALSE.
-   *    - 'show elements': Whether to include the 'elements' fieldset for
-   *      editing the actual configuration. Defaults to TRUE.
    *    - 'restrict plugins: May be used to restrict the list of rules plugins
    *      that may be added to this configuration. For that set an array of
    *      valid plugins. Note that conditions and actions are always valid, so
@@ -160,22 +158,20 @@ class RulesPluginUI extends FacesExtender {
     return array('RulesPluginUIInterface');
   }
 
+  //TODO: Show element edit form.
   public function form(&$form, &$form_state, $options = array(), $element) {
-    $form = array();
-    $form['#theme'] = 'rules_plugins';
-    $form['head'] = array(
-      //TODO: Remove child element id.
-      '#markup' => check_plain($element->label()) . '-' . self::childElementId($element),
-    );
 
-    $form['operator'] = $element->operations();
-    $form['settings'] = $element->buildContent();
+    $form['#theme'] = 'rules_element_view';
+    $form['head'] = array(
+      '#markup' => check_plain($element->label()),
+    );
   }
 
+  //TODO: Return info render array for use in table.
   public function buildContent($element) {
-    $form['#markup'] = t('Parameter:');
+    $form['parameter']['#markup'] = t('Parameter:');
     foreach($element->parameterInfo() as $name => $parameter) {
-      $form[$name] = array(
+      $form['parameter'][$name] = array(
         '#markup' => $name,
       );
     }
@@ -291,9 +287,10 @@ class RulesPluginUI extends FacesExtender {
   }
 }
 
-
-
-class RulesContainerUI extends RulesPluginUI {
+/**
+ * UI for Rules Container.
+ */
+class RulesPluginContainerUI extends RulesPluginUI {
 
 
   public function operations($element) {
@@ -320,4 +317,21 @@ class RulesContainerUI extends RulesPluginUI {
     );
     return $form;
   }
+
+  //TODO: Show table with children.
+  public function form(&$form, &$form_state, $options = array(), $element) {
+
+    foreach ($element as $key => $child) {
+      $id = self::childElementId($child);
+      $form['elements'][$id]['label'] = array(
+        '#markup' => check_plain($child->label()),
+      );
+      $form['elements'][$id]['weight'] = array(
+        '#type' => 'weight',
+        '#default_value' => $child->weight,
+      );
+      $form['elements'][$id]['operations'] = $child->operations();
+    }
+  }
+
 }

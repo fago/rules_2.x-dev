@@ -4,9 +4,14 @@
 /**
  * @file Rules theme functions
  */
-function theme_rules_plugins($variables) {
+
+/**
+ * Themes the display of a configuration element.
+ */
+function theme_rules_element_view($variables) {
   $form = $variables['form'];
 
+  //TODO: needs to be specified in the render array
   drupal_add_css(drupal_get_path('module', 'rules') . '/ui/rules.css');
 
   $output = '';
@@ -17,20 +22,20 @@ function theme_rules_plugins($variables) {
 
 
   $output .= '<div class="rules_plugin_operator">';
-  foreach (element_children($form['operator']) as $operator) {
+  foreach (element_children($form['operations']) as $operator) {
     $output .= '<div class="rules_plugin_operators">';
-    $output .= drupal_render($form['operator'][$operator]);
+    $output .= drupal_render($form['operations'][$operator]);
     $output .= '</div>';
 
   }
   $output .= '</div>';
 
   $output .= '<div class="rules_plugin_parameter">';
-  $output .= drupal_render($form['settings']);
+  $output .= drupal_render($form['content']);
   $output .= '<ul class="rules_plugin_list">';
-  foreach (element_children($form['settings']) as $parameter) {
+  foreach (element_children($form['content']) as $parameter) {
     $output .= '<li class="rules_plugin_list">';
-    $output .= drupal_render($form['settings'][$parameter]);
+    $output .= drupal_render($form['content'][$parameter]);
     $output .= '</li>';
   }
   $output .= '</ul>';

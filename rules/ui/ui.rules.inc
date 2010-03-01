@@ -4,9 +4,33 @@
 /**
  * @file Contains ui functions for rules.
  */
-class RulesReactionRuleUI extends RulesPluginUI {
+class RulesRuleUI extends RulesPluginContainerUI {
 
   public function form(&$form, &$form_state, $options = array(), $rule) {
+
+    $form['elements']['conditions'] = array(
+      '#type' => 'fieldset',
+      '#title' => t('If:'),
+    );
+
+    RulesPluginContainerUI::form($form['elements']['conditions'], $form_state, $options, $rule->conditions());
+
+    $form['elements']['conditions']['add'] = array(
+      '#markup' => t(l('+ Add condition', RULES_UI_RULE_PATH . '/' . $rule->name . '/add/condition')),
+    );
+
+    $form['elements']['actions'] = array(
+      '#type' => 'fieldset',
+      '#title' => t('Do:'),
+    );
+
+    //TODO: Add separate condition/action form for adding the add link.
+    parent::form($form['elements']['actions'], $form_state, $options, $rule->actions());
+
+    $form['elements']['actions']['add'] = array(
+      '#markup' => t(l('+ Add action', RULES_UI_RULE_PATH . '/' . $rule->name . '/add/action')),
+    );
+
     $form['settings'] = array(
       '#type' => 'fieldset',
       '#title' => t('Settings'),
@@ -27,65 +51,12 @@ class RulesReactionRuleUI extends RulesPluginUI {
       '#delta' => 10,
     );
 
-    $form['elements'] = array(
-      '#type' => 'fieldset',
-      '#title' => t('Rule elements'),
-      '#collapsible' => TRUE,
-      '#collapsed' => FALSE,
-    );
-
-    $form['elements']['events'] = array(
-      '#type' => 'fieldset',
-      '#title' => t('On'),
-    );
-
-    $events = rules_fetch_data('event_info');
-    foreach($rule->events() as $event_name) {
-      $form['elements']['events'][$event_name] = array(
-        '#markup' => $events[$event_name]['label'],
-        '#prefix' => '<div>',
-        '#suffix' => '&nbsp;<span class="rules_rule_event">' . l(t('delete'), RULES_UI_RULE_PATH) . '</span></div>',
-      );
-    }
-
-    $form['elements']['events']['add'] = array(
-      '#markup' => t(l('+ Add event', RULES_UI_RULE_PATH . '/' . $rule->name . '/add/event')),
-    );
-
-    $form['elements']['conditions'] = array(
-      '#type' => 'fieldset',
-      '#title' => t('If:'),
-    );
-
-    foreach($rule->conditions() as $id => $condition) {
-      $condition->form($form['elements']['conditions']['elements'], $form_state);
-    }
-
-    $form['elements']['conditions']['add'] = array(
-      '#markup' => t(l('+ Add condition', RULES_UI_RULE_PATH . '/' . $rule->name . '/add/condition')),
-    );
-
-
-    $form['elements']['actions'] = array(
-      '#type' => 'fieldset',
-      '#title' => t('Do:'),
-    );
-
-    foreach ($rule->actions() as $id => $action) {
-      $action->form($form['elements']['actions']['elements'][$id], $form_state);
-    }
-
-    $form['elements']['actions']['add'] = array(
-      '#markup' => t(l('+ Add action', RULES_UI_RULE_PATH . '/' . $rule->name . '/add/action')),
-    );
-
     $form['submit'] = array(
       '#type' => 'submit',
       '#value' => t('Save Changes'),
     );
-    $form_state['rules_ui_rule'] = &$this;
+    $form_state['rules_ui_rule'] = $rule;
 
-    return $form;
   }
 
   public function form_validate(&$form, &$form_state, $rule) {
@@ -102,8 +73,32 @@ class RulesReactionRuleUI extends RulesPluginUI {
     $rule->save();
   }
 
-  public function buildContent($rule) {}
-  public function help($rule) {}
-  public function access($rule) {}
-  public function operations($rule) {}
+}
+
+/**
+ * Reaction rule specific UI.
+ */
+class RulesReactionRuleUI extends RulesRuleUI {
+
+  public function form(&$form, &$form_state, $options = array(), $rule) {
+    parent::form($form, $form_state, $options, $rule);
+
+    $form['elements']['events'] = array(
+      '#type' => 'fieldset',
+      '#title' => t('On'),
+    );
+
+    $event_info = rules_fetch_data('event_info');
+    foreach($rule->events() as $event_name) {
+      $form['elements']['events'][$event_name] = array(
+        '#markup' => check_plain($event_info[$event_name]['label']),
+        '#prefix' => '<div>',
+        '#suffix' => '&nbsp;<span class="rules_rule_event">' . l(t('delete'), RULES_UI_RULE_PATH) . '</span></div>',
+      );
+    }
+
+    $form['elements']['events']['add'] = array(
+      '#markup' => t(l('+ Add event', RULES_UI_RULE_PATH . '/' . $rule->name . '/add/event')),
+    );
+  }
 }
