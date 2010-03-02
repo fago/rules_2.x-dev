@@ -74,79 +74,10 @@ interface RulesPluginUIInterface {
 
   /**
    * Returns ui operations for this element.
-   * //TODO: allow modules to specify them in the plugin_info hook.
    */
   public function operations();
 
 }
-
-/**
- * Provides the interface used for implementing an abstract plugin by using
- * the Faces extension mechanism.
- */
-interface RulesPluginImplInterface extends RulesPluginUIInterface {
-
-  public function execute();
-
-  /**
-   * Validates $settings independent from a form submission.
-   *
-   * @throws RulesException
-   *   In case of validation errors, RulesExceptions are thrown.
-   */
-  public function validate();
-
-  /**
-   * Processes $settings independent from a form submission. Only successfully
-   * validated settings are processed, so it can be also used to prepare
-   * execution dependent on the settings.
-   */
-  public function process();
-}
-
-/**
- * Class providing default implementations for the concrete plugin if not
- * overriden by the implementation.
- *
- * @see RulesPluginImplInterface
- */
-class RulesAbstractPluginDefaults extends FacesExtender {
-
-  public function implementsFaces() {
-    return array('RulesPluginImplInterface');
-  }
-
-  public function execute($element) {
-    throw new RulesException($element->getPluginName() .": Execution implementation is missing.");
-  }
-
-  public function validate($element) {}
-  public function process($element) {}
-  public function form($element) {}
-  public function form_validate($element) {}
-  public function form_submit($element) {}
-
-  public function access($element) {
-    $info = $element->property('info');
-    if (!empty($info['access callback']) && !call_user_func($info['access callback'], $element->property('itemName'), $element->getElementName())) {
-      return FALSE;
-    }
-    foreach ($info['parameter'] as $name => $info) {
-      if (isset($element->settings[$name . ':select']) && $wrapper = $element->call('applyDataSelector', array($element->settings[$name . ':select']))) {
-        if ($wrapper->access('view') === FALSE) {
-          return FALSE;
-        }
-        //TODO: Check input evaluator access.
-      }
-    }
-    return TRUE;
-  }
-
-  public function operations($element) {}
-  public function buildContent($element) {}
-  public function help($element) {}
-}
-
 
 /**
  * Faces UI extender for all kind of Rules plugins. Provides various useful
@@ -158,6 +89,9 @@ class RulesPluginUI extends FacesExtender {
     return array('RulesPluginUIInterface');
   }
 
+  /**
+   * Implements RulesPluginUIInterface.
+   */
   //TODO: Show element edit form.
   public function form(&$form, &$form_state, $options = array(), $element) {
 
@@ -167,6 +101,19 @@ class RulesPluginUI extends FacesExtender {
     );
   }
 
+  /**
+   * Implements RulesPluginUIInterface.
+   */
+  public function form_validate() {}
+
+  /**
+   * Implements RulesPluginUIInterface.
+   */
+  public function form_submit() {}
+
+  /**
+   * Implements RulesPluginUIInterface.
+   */
   //TODO: Return info render array for use in table.
   public function buildContent($element) {
     $form['parameter']['#markup'] = t('Parameter:');
@@ -177,6 +124,44 @@ class RulesPluginUI extends FacesExtender {
     }
     return $form;
   }
+
+  /**
+   * Implements RulesPluginUIInterface.
+   */
+  public function access($element) {
+    $info = $element->property('info');
+    foreach ($info['parameter'] as $name => $info) {
+      if (isset($element->settings[$name . ':select']) && $wrapper = $element->call('applyDataSelector', array($element->settings[$name . ':select']))) {
+        if ($wrapper->access('view') === FALSE) {
+          return FALSE;
+        }
+        //TODO: Check input evaluator access.
+      }
+    }
+    return TRUE;
+  }
+
+  /**
+   * Implements RulesPluginUIInterface.
+   */
+  public function operations($element) {
+    $name = $element->root()->name;
+    $element_id = self::childElementId($element);
+
+    $render['edit'] = array(
+      '#markup' => l(t('Edit'), RulesPluginUI::path($name, $element_id)),
+    );
+    $render['delete'] = array(
+      '#markup' => l(t('Delete'), RulesPluginUI::path($name, $element_id, 'delete')),
+    );
+    return $render;
+  }
+
+  /**
+   * Implements RulesPluginUIInterface.
+   */
+  public function help($element) {}
+
 
   /**
    * Returns the child element associated with the given id.
@@ -297,45 +282,21 @@ class RulesPluginUI extends FacesExtender {
 /**
  * UI for Rules Container.
  */
-class RulesPluginContainerUI extends RulesPluginUI {
+class RulesContainerPluginUI extends RulesPluginUI {
 
-
-  public function operations($element) {
-    $form = array();
-
-    $rule = $element->root()->name;
-    $element_id = self::childElementId($element);
-
-    $form['edit'] = array(
-      '#markup' => l(t('Edit'), RULES_UI_RULE_PATH . '/' . $rule . '/edit/' . $element_id . '/container'),
-    );
-    $form['delete'] = array(
-      '#markup' => l(t('Delete'), RULES_UI_RULE_PATH . '/' . $rule . '/delete/' . $element_id . '/container'),
-    );
-
-    $form['add_or'] = array(
-      '#markup' => l(t('+ Add or'), RULES_UI_RULE_PATH . '/' . $rule . '/add/or'),
-    );
-    $form['add_and'] = array(
-      '#markup' => l(t('+ Add and'), RULES_UI_RULE_PATH . '/' . $rule . '/add/and'),
-    );
-    $form['add_loop'] = array(
-      '#markup' => l(t('+ Add Loop'), RULES_UI_RULE_PATH . '/' . $rule . '/delete/loop'),
-    );
-    return $form;
-  }
-
-  //TODO: Show table with children.
+  /**
+   * Generates a table for editing the contained elements.
+   */
   public function form(&$form, &$form_state, $options = array(), $element, $iterator = NULL) {
 
     // Recurse over all element childrens or use the provided iterator.
     $iterator = new RecursiveIteratorIterator(isset($iterator) ? $iterator : $element, RecursiveIteratorIterator::SELF_FIRST);
     $root_depth = $element->depth();
-
     foreach ($iterator as $key => $child) {
       $id = self::childElementId($child);
 
       $is_container = $child instanceof RulesContainerPlugin;
+      $form['#tree'] = TRUE;
       $form['elements'][$id] = array(
         '#depth' => $child->depth() - $root_depth - 1,
         '#container' => $is_container,
@@ -350,18 +311,133 @@ class RulesPluginContainerUI extends RulesPluginUI {
       );
       $form['elements'][$id]['parent_id'] = array(
         '#type' => 'hidden',
-        '#default_value' => self::childElementId($element),
+        '#default_value' => self::childElementId($child->property('parent')),
       );
       $form['elements'][$id]['element_id'] = array(
         '#type' => 'hidden',
         '#default_value' => $id,
       );
       $form['elements'][$id]['operations'] = $child->operations();
-
     }
     $form['elements']['#options'] = $options;
     $form['elements']['#theme'] = 'rules_elements';
     $form['elements'] += array('#empty' => t('None'), '#head' => t('Elements'));
   }
+
+  /**
+   * Applies the values of the form to the given rule configuration.
+   */
+  function form_extract_values($form, $form_state, $element) {
+    // Get the right form values.
+    $values = $form_state['values'];
+    foreach ($form['#parents'] as $key) {
+      $values = isset($values[$key]) ? $values[$key] : NULL;
+    }
+    // Now apply the new hierarchy.
+    if (isset($values)) {
+      $root_element = $element->root();
+      foreach ($values['elements'] as $id => $data) {
+        $child = self::getChildElementById($root_element, $id);
+        $child->weight = $data['weight'];
+        $parent = self::getChildElementById($root_element, $data['parent_id']);
+        $child->setParent($parent ? $parent : $element);
+      }
+      $element->sortChildren(TRUE);
+    }
+  }
+}
+
+/**
+ * UI for Rules condition container.
+ */
+class RulesConditionContainerUI extends RulesContainerPluginUI {
+
+
+  public function operations($element) {
+    $name = $element->root()->name;
+    $element_id = self::childElementId($element);
+
+    $render['edit'] = array(
+      '#markup' => l(t('Edit'), RulesPluginUI::path($name, $element_id)),
+    );
+    $render['delete'] = array(
+      '#markup' => l(t('Delete'), RulesPluginUI::path($name, $element_id, 'delete')),
+    );
+    $render['add_or'] = array(
+      '#markup' => l(t('+ Add or'), RULES_UI_RULE_PATH . '/' . $name . '/add/or'),
+    );
+    $render['add_and'] = array(
+      '#markup' => l(t('+ Add and'), RULES_UI_RULE_PATH . '/' . $name . '/add/and'),
+    );
+    return $render;
+  }
+}
+
+/**
+ * Provides the interface used for implementing an abstract plugin by using
+ * the Faces extension mechanism.
+ */
+interface RulesPluginImplInterface extends RulesPluginUIInterface {
+
+  public function execute();
+
+  /**
+   * Validates $settings independent from a form submission.
+   *
+   * @throws RulesException
+   *   In case of validation errors, RulesExceptions are thrown.
+   */
+  public function validate();
+
+  /**
+   * Processes $settings independent from a form submission. Only successfully
+   * validated settings are processed, so it can be also used to prepare
+   * execution dependent on the settings.
+   */
+  public function process();
+}
+
+/**
+ * Class providing default implementations for the concrete plugin if not
+ * overriden by the implementation.
+ *
+ * @see RulesPluginImplInterface
+ */
+class RulesAbstractPluginDefaults extends RulesPluginUI {
+
+  public function implementsFaces() {
+    return array('RulesPluginImplInterface');
+  }
+
+  public function execute($element) {
+    throw new RulesException($element->getPluginName() .": Execution implementation is missing.");
+  }
+
+  /**
+   * Implements RulesPluginImplInterface.
+   */
+  public function validate() {}
+
+  /**
+   * Implements RulesPluginImplInterface.
+   */
+  public function process() {}
+
+  /**
+   * Implements RulesPluginImplInterface.
+   */
+  public function access($element) {
+    $info = $element->property('info');
+    if (!empty($info['access callback']) && !call_user_func($info['access callback'], $element->property('itemName'), $element->getElementName())) {
+      return FALSE;
+    }
+    return RulesPluginUI::access($element);
+  }
+
+  /**
+   * Implements RulesPluginImplInterface.
+   * //TODO: allow modules to specify them in the info hook.
+   */
+  //public function operations() {}
 
 }

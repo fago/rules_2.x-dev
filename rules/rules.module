@@ -328,9 +328,6 @@ function rules_rules_plugin_info() {
         'RulesPluginImplInterface' => array(
           'class' => 'RulesAbstractPluginDefaults',
         ),
-        'RulesPluginUIInterface' => array(
-          'class' => 'RulesConditionUI',
-        ),
       ),
     ),
     'action' => array(
@@ -339,16 +336,13 @@ function rules_rules_plugin_info() {
         'RulesPluginImplInterface' => array(
           'class' => 'RulesAbstractPluginDefaults',
         ),
-        'RulesPluginUIInterface' => array(
-          'class' => 'RulesActionUI',
-        ),
       ),
     ),
     'or' => array(
       'class' => 'RulesOr',
       'extenders' => array(
         'RulesPluginUIInterface' => array(
-          'class' => 'RulesPluginContainerUI',
+          'class' => 'RulesConditionContainerUI',
         ),
       ),
     ),
@@ -356,7 +350,7 @@ function rules_rules_plugin_info() {
       'class' => 'RulesAnd',
       'extenders' => array(
         'RulesPluginUIInterface' => array(
-          'class' => 'RulesPluginContainerUI',
+          'class' => 'RulesConditionContainerUI',
         ),
       ),
     ),
@@ -374,7 +368,7 @@ function rules_rules_plugin_info() {
       'class' => 'RulesLoop',
       'extenders' => array(
         'RulesPluginUIInterface' => array(
-          'class' => 'RulesPluginContainerUI',
+          'class' => 'RulesContainerPluginUI',
         ),
       ),
     ),
@@ -669,6 +663,7 @@ function rules_theme() {
 
 /**
  * Implements hook_menu().
+ * Provides some callbacks used by the embeddable UI.
  */
 function rules_menu() {
   $items[RULES_UI_RULE_PATH . '/%rules_config'] = array(
@@ -696,7 +691,6 @@ function rules_menu() {
     'type' => MENU_CALLBACK,
     'file' => 'ui/ui.forms.inc',
   );
-
   return $items;
 }
 

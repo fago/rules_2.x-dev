@@ -4,32 +4,31 @@
 /**
  * @file Contains ui functions for rules.
  */
-class RulesRuleUI extends RulesPluginContainerUI {
+class RulesRuleUI extends RulesContainerPluginUI {
 
   public function form(&$form, &$form_state, $options = array(), $rule) {
 
-    $form['elements']['conditions'] = array(
+    $form['conditions'] = array(
       '#type' => 'container',
-      '#title' => t('If:'),
+      '#tree' => TRUE,
     );
 
     // Make sure the condition is intialized and then get it.
     $rule->conditions();
-    RulesPluginContainerUI::form($form['elements']['conditions'], $form_state, $options, $rule->property('conditions'));
-
-    $form['elements']['conditions']['add'] = array(
+    RulesContainerPluginUI::form($form['conditions'], $form_state, $options, $rule->property('conditions'));
+    $form['conditions']['add'] = array(
       '#markup' => t(l('+ Add condition', RULES_UI_RULE_PATH . '/' . $rule->name . '/add/condition')),
     );
 
-    $form['elements']['actions'] = array(
+    $form['actions'] = array(
       '#type' => 'container',
-      '#title' => t('Do:'),
+      '#tree' => TRUE,
     );
 
     //TODO: Add separate condition/action form for adding the add link.
-    parent::form($form['elements']['actions'], $form_state, $options, $rule, $rule->actions());
+    parent::form($form['actions'], $form_state, $options, $rule, $rule->actions());
 
-    $form['elements']['actions']['add'] = array(
+    $form['actions']['add'] = array(
       '#markup' => t(l('+ Add action', RULES_UI_RULE_PATH . '/' . $rule->name . '/add/action')),
     );
 
@@ -57,22 +56,39 @@ class RulesRuleUI extends RulesPluginContainerUI {
       '#type' => 'submit',
       '#value' => t('Save Changes'),
     );
-    $form_state['rules_ui_rule'] = $rule;
+    $form_state['rules_config'][$rule->name] = $rule;
+  }
+
+  /**
+   * Applies the values of the form to the given rule configuration.
+   */
+  function form_extract_values($form, $form_state, $rule) {
+    $rule->label = $form_state['values']['label'];
+    $rule->weight = $form_state['values']['weight'];
+    // Run condition and action container value extraction.
+    RulesContainerPluginUI::form_extract_values($form['conditions'], $form_state, $rule);
+    parent::form_extract_values($form['actions'], $form_state, $rule);
 
   }
 
   public function form_validate(&$form, &$form_state, $rule) {
-    $rule->label = $form_state['values']['label'];
-    if (isset($form_state['values']['weight']))
-      $rule->weight = isset($form_state['values']['weight']);
-    if (!$rule->integrityCheck()) {
-      form_set_error('', t('Something went wrong, while saving the rule!'));
+    self::form_extract_values($form, $form_state, $rule);
+
+    if (!$rule->access()) {
+      form_set_error(NULL, t('Access violation!'));
+    }
+    try {
+      $rule->integrityCheck();
+    }
+    catch (RulesException $e) {
+      //TODO: Add visual feedback which element had troubles.
+      form_set_error('', $e->getMessage());
     }
   }
 
   public function form_submit(&$form, &$form_state, $rule) {
-    drupal_set_message('Rule "' . $rule->label . '" saved');
     $rule->save();
+    drupal_set_message(t('Your changes have been saved.'));
   }
 
 }

@@ -7,26 +7,32 @@
 
 
 /**
- * Edit rules config
+ * Edit a rules configuration.
  */
-function rules_ui_form_edit_rules_config($form, &$form_state, $rule = NULL) {
+function rules_ui_form_edit_rules_config($form, &$form_state, $rule) {
   $rule->form($form, $form_state);
-  $form_state['rules']['rules'][$rule->name] = &$rule;
   $form['#validate'][] = 'rules_ui_form_edit_rules_config_validate';
   $form['#submit'][] = 'rules_ui_form_edit_rules_config_submit';
   return $form;
 }
 
+/**
+ * Form validation callback.
+ */
 function rules_ui_form_edit_rules_config_validate($form, &$form_state) {
-  foreach ($form_state['rules']['rules'] as $rule) {
-    $rule->form_validate($form, $form_state);
+  foreach ($form_state['rules_config'] as $config) {
+    $config->form_validate($form, $form_state);
   }
 }
 
+/**
+ * Form submit callback.
+ */
 function rules_ui_form_edit_rules_config_submit($form, &$form_state) {
-  foreach ($form_state['rules']['rules'] as $rule) {
-    $rule->form_submit($form, $form_state);
+  foreach ($form_state['rules_config'] as $config) {
+    $config->form_submit($form, $form_state);
   }
+  $form_state['rebuild'] = TRUE;
 }
 
 /**

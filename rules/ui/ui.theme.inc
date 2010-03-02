@@ -78,9 +78,6 @@ function theme_rules_elements($variables) {
     $element['element_id']['#attributes']['class'] = array('rules-element-id');
     $element['weight']['#attributes']['class'] = array('rules-element-weight');
 
-    // Change the parent field to a hidden. This allows any value but hides the field.
-    $element['parent_id']['#type'] = 'hidden';
-
     $row = array();
     $row[] = theme('indentation', array('size' => $element['#depth'])) . drupal_render($element['label']);
     $row[] = drupal_render($element['weight']) . drupal_render($element['parent_id']) . drupal_render($element['element_id']);
