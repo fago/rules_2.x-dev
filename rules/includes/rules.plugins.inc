@@ -195,7 +195,7 @@ class Rule extends RulesActionContainer {
 
   public function getIterator() {
     $array = empty($this->conditions) ? array() : $this->conditions->children;
-    $array = array_merge($array, $this->children);
+    $array = array_merge(array($this->conditions), $this->children);
     return new RulesRecursiveElementIterator($array);
   }
 
@@ -288,6 +288,10 @@ class RulesAnd extends RulesConditionContainer {
     rules_log('AND evaluated to TRUE.');
     return !$this->negate;
   }
+
+  public function label() {
+    return $this->negate ? t('NOT AND') : t('AND');
+  }
 }
 
 /**
@@ -306,6 +310,10 @@ class RulesOr extends RulesConditionContainer {
     }
     rules_log('OR evaluated to FALSE.');
     return $this->negate;
+  }
+
+  public function label() {
+    return $this->negate ? t('NOT OR') : t('OR');
   }
 }
 
@@ -376,6 +384,10 @@ class RulesLoop extends RulesActionContainer {
 
   protected function stateVariables() {
     return array($this->settings['item:var'] => $this->listItemInfo()) + $this->availableVariables();
+  }
+
+  public function label() {
+    return t('Loop');
   }
 }
 

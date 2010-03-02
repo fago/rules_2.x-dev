@@ -9,23 +9,25 @@ class RulesRuleUI extends RulesPluginContainerUI {
   public function form(&$form, &$form_state, $options = array(), $rule) {
 
     $form['elements']['conditions'] = array(
-      '#type' => 'fieldset',
+      '#type' => 'container',
       '#title' => t('If:'),
     );
 
-    RulesPluginContainerUI::form($form['elements']['conditions'], $form_state, $options, $rule->conditions());
+    // Make sure the condition is intialized and then get it.
+    $rule->conditions();
+    RulesPluginContainerUI::form($form['elements']['conditions'], $form_state, $options, $rule->property('conditions'));
 
     $form['elements']['conditions']['add'] = array(
       '#markup' => t(l('+ Add condition', RULES_UI_RULE_PATH . '/' . $rule->name . '/add/condition')),
     );
 
     $form['elements']['actions'] = array(
-      '#type' => 'fieldset',
+      '#type' => 'container',
       '#title' => t('Do:'),
     );
 
     //TODO: Add separate condition/action form for adding the add link.
-    parent::form($form['elements']['actions'], $form_state, $options, $rule->actions());
+    parent::form($form['elements']['actions'], $form_state, $options, $rule, $rule->actions());
 
     $form['elements']['actions']['add'] = array(
       '#markup' => t(l('+ Add action', RULES_UI_RULE_PATH . '/' . $rule->name . '/add/action')),
@@ -81,10 +83,9 @@ class RulesRuleUI extends RulesPluginContainerUI {
 class RulesReactionRuleUI extends RulesRuleUI {
 
   public function form(&$form, &$form_state, $options = array(), $rule) {
-    parent::form($form, $form_state, $options, $rule);
 
     $form['elements']['events'] = array(
-      '#type' => 'fieldset',
+      '#type' => 'container',
       '#title' => t('On'),
     );
 
@@ -100,5 +101,7 @@ class RulesReactionRuleUI extends RulesRuleUI {
     $form['elements']['events']['add'] = array(
       '#markup' => t(l('+ Add event', RULES_UI_RULE_PATH . '/' . $rule->name . '/add/event')),
     );
+
+    parent::form($form, $form_state, $options, $rule);
   }
 }

@@ -249,6 +249,30 @@ abstract class RulesPlugin extends RulesExtendable {
   }
 
   /**
+   * Gets the root element of the configuration.
+   */
+  public function root() {
+    $element = $this;
+    while (!empty($element->parent)) {
+      $element = $element->parent;
+    }
+    return $element;
+  }
+
+  /**
+   * Returns the depth of this element in the configuration.
+   */
+  public function depth() {
+    $element = $this;
+    $i = 0;
+    while (!empty($element->parent)) {
+      $element = $element->parent;
+      $i++;
+    }
+    return $i;
+  }
+
+  /**
    * Execute the plugin.
    */
   public function execute() {}
@@ -645,23 +669,10 @@ abstract class RulesPlugin extends RulesExtendable {
   }
 
   /**
-   * Return the root element(in most cases the rule).
-   *
-   * @return RulesPlugin
-   */
-  public function getRootElement() {
-    $element = $this;
-    while ($parent = $element->property('parent')) {
-      $element = $parent;
-    }
-    return $element;
-  }
-
-  /**
    * Returns the label of the element.
    */
   public function label() {
-    if (isset($this->label)) {
+    if (!empty($this->label)) {
       return $this->label;
     }
     return isset($this->info['label']) ? $this->info['label'] : t('unlabeled');

@@ -207,9 +207,7 @@ class RulesPluginUI extends FacesExtender {
 
       if (!$counter) {
         // Get the rules config.
-        while ($parent = $element->property('parent')) {
-          $element = $parent;
-        }
+        $element = $element->root();
         $element->map = array();
         $map =& $element->map;
       }
@@ -243,6 +241,7 @@ class RulesPluginUI extends FacesExtender {
 
     foreach ($configs as $name => $config) {
       $path = RULES_UI_RULE_PATH . '/' . $name;
+      $row = array();
       $row[] = l($config->label, $path);
       // Add events if the configs are assigned to events.
       $events = array();
@@ -267,6 +266,14 @@ class RulesPluginUI extends FacesExtender {
       '#empty' => $empty_text,
     );
     return $table;
+  }
+
+  /**
+   * Generates a path using the given operation for the element with the given
+   * id of the configuration with the given name.
+   */
+  public function path($name, $element_id, $op = NULL) {
+    return RULES_UI_RULE_PATH . '/' . $name . '/edit/' . $element_id . ($op ? '/' . $op : '');
   }
 
   /**
@@ -296,7 +303,7 @@ class RulesPluginContainerUI extends RulesPluginUI {
   public function operations($element) {
     $form = array();
 
-    $rule = $element->getRootElement()->name;
+    $rule = $element->root()->name;
     $element_id = self::childElementId($element);
 
     $form['edit'] = array(
@@ -319,19 +326,42 @@ class RulesPluginContainerUI extends RulesPluginUI {
   }
 
   //TODO: Show table with children.
-  public function form(&$form, &$form_state, $options = array(), $element) {
+  public function form(&$form, &$form_state, $options = array(), $element, $iterator = NULL) {
 
-    foreach ($element as $key => $child) {
+    // Recurse over all element childrens or use the provided iterator.
+    $iterator = new RecursiveIteratorIterator(isset($iterator) ? $iterator : $element, RecursiveIteratorIterator::SELF_FIRST);
+    $root_depth = $element->depth();
+
+    foreach ($iterator as $key => $child) {
       $id = self::childElementId($child);
+
+      $is_container = $child instanceof RulesContainerPlugin;
+      $form['elements'][$id] = array(
+        '#depth' => $child->depth() - $root_depth - 1,
+        '#container' => $is_container,
+      );
+      $label = $is_container ? check_plain($child->label()) : l($child->label(), RulesPluginUI::path($element->root()->name, $id));
       $form['elements'][$id]['label'] = array(
-        '#markup' => check_plain($child->label()),
+        '#markup' => $label,
       );
       $form['elements'][$id]['weight'] = array(
         '#type' => 'weight',
         '#default_value' => $child->weight,
       );
+      $form['elements'][$id]['parent_id'] = array(
+        '#type' => 'hidden',
+        '#default_value' => self::childElementId($element),
+      );
+      $form['elements'][$id]['element_id'] = array(
+        '#type' => 'hidden',
+        '#default_value' => $id,
+      );
       $form['elements'][$id]['operations'] = $child->operations();
+
     }
+    $form['elements']['#options'] = $options;
+    $form['elements']['#theme'] = 'rules_elements';
+    $form['elements'] += array('#empty' => t('None'), '#head' => t('Elements'));
   }
 
 }

@@ -9,14 +9,14 @@ class RulesConditionUI extends RulesPluginUI {
   public function operations($element) {
     $form = array();
 
-    $rule = $element->getRootElement()->name;
+    $config_name = $element->root()->name;
     $element_id = self::childElementId($element);
 
     $form['edit'] = array(
-      '#markup' => l(t('Edit'), RULES_UI_RULE_PATH . '/' . $rule . '/edit/' . $element_id . '/condition'),
+      '#markup' => l(t('Edit'), RulesPluginUI::path($config_name, $element_id)),
     );
     $form['delete'] = array(
-      '#markup' => l(t('Delete'), RULES_UI_RULE_PATH . '/' . $rule . '/delete/' . $element_id  . '/condition'),
+      '#markup' => l(t('Delete'), RulesPluginUI::path($config_name, $element_id, 'delete')),
     );
     return $form;
   }
@@ -26,14 +26,14 @@ class RulesActionUI extends RulesPluginUI {
   public function operations($element) {
     $form = array();
 
-    $rule = $element->getRootElement()->name;
+    $config_name = $element->root()->name;
     $element_id = self::childElementId($element);
 
     $form['edit'] = array(
-      '#markup' => l(t('Edit'), RULES_UI_RULE_PATH . '/' . $rule . '/edit/' . $element_id . '/action'),
+      '#markup' => l(t('Edit'), RulesPluginUI::path($config_name, $element_id)),
     );
     $form['delete'] = array(
-      '#markup' => l(t('Delete'), RULES_UI_RULE_PATH . '/' . $rule . '/delete/' . $element_id  . '/action'),
+      '#markup' => l(t('Delete'), RulesPluginUI::path($config_name, $element_id, 'delete')),
     );
     return $form;
   }
