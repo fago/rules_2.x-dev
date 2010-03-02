@@ -666,7 +666,7 @@ class RulesTriggerTestCase extends DrupalWebTestCase {
     $node = $this->drupalCreateNode(array('type' => 'page', 'sticky' => 0, 'status' => 0));
     node_save($node);
 
-    $text = RulesTestCase::t('Not evaluating the rule %unlabelled to prevent recursion.', array('unlabelled'));
+    $text = RulesTestCase::t('Not evaluating the rule %unlabeled to prevent recursion.', array('unlabeled'));
     $this->assertTrue((strpos(RulesLog::logger()->render(), $text) !== FALSE), "Recursion prevented.");
     //debug(RulesLog::logger()->render());
   }
