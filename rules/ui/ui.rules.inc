@@ -7,31 +7,15 @@
 class RulesRuleUI extends RulesContainerPluginUI {
 
   public function form(&$form, &$form_state, $options = array(), $rule) {
-
-    $form['conditions'] = array(
-      '#type' => 'container',
-      '#tree' => TRUE,
-    );
-
     // Make sure the condition is intialized and then get it.
     $rule->conditions();
-    RulesContainerPluginUI::form($form['conditions'], $form_state, $options, $rule->property('conditions'));
-    $form['conditions']['add'] = array(
-      '#markup' => t(l('+ Add condition', RULES_UI_RULE_PATH . '/' . $rule->name . '/add/condition')),
-    );
+    $form['conditions'] = array();
+    RulesConditionContainerUI::form($form['conditions'], $form_state, $options, $rule->property('conditions'));
 
-    $form['actions'] = array(
-      '#type' => 'container',
-      '#tree' => TRUE,
-    );
+    $form['actions'] = array();
+    RulesActionContainerUI::form($form['actions'], $form_state, $options, $rule, $rule->actions());
 
-    //TODO: Add separate condition/action form for adding the add link.
-    parent::form($form['actions'], $form_state, $options, $rule, $rule->actions());
-
-    $form['actions']['add'] = array(
-      '#markup' => t(l('+ Add action', RULES_UI_RULE_PATH . '/' . $rule->name . '/add/action')),
-    );
-
+    // Add the settings in a separate fieldset below.
     $form['settings'] = array(
       '#type' => 'fieldset',
       '#title' => t('Settings'),
@@ -67,7 +51,7 @@ class RulesRuleUI extends RulesContainerPluginUI {
     $rule->weight = $form_state['values']['weight'];
     // Run condition and action container value extraction.
     RulesContainerPluginUI::form_extract_values($form['conditions'], $form_state, $rule);
-    parent::form_extract_values($form['actions'], $form_state, $rule);
+    RulesActionContainerUI::form_extract_values($form['actions'], $form_state, $rule);
 
   }
 

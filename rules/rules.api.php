@@ -344,6 +344,9 @@ function hook_rules_data_info() {
  *   key. Possible attributes for each sub-array are:
  *   - label: A label for the plugin. Start capitalized. Required.
  *   - class: The implementation class. Has to extend the RulesPlugin class.
+ *   - embeddable: A container class in which elements of those plugin may be
+ *     embedded or FALSE to disallow embedding. Common classes that are used
+ *     here are RulesConditionContainer and RulesActionContainer.
  *   - extenders: This allows one to specify faces extenders, which may be used
  *     to dynamically implement interfaces. Optional. All extenders specified
  *     here are setup automatically by rules once the object is created. To
@@ -375,13 +378,15 @@ function hook_rules_plugin_info() {
   return array(
     'or' => array(
       'class' => 'RulesOr',
+      'embeddable' => 'RulesConditionContainer',
     ),
     'and' => array(
+      'embeddable' => 'RulesConditionContainer',
       'class' => 'RulesAnd',
     ),
     'rule' => array(
       'class' => 'Rule',
-      'embeddable' => TRUE,
+      'embeddable' => 'RulesRuleSet',
       'extenders' => array (
       // Interfaces => array( class => className / methods => array of Methods).
       ),

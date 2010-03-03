@@ -1,5 +1,22 @@
 @CHARSET "UTF-8";
 
+.rules-container-plugin ul.action-links .delete a, .rules-container-plugin ul.action-links .edit a {
+	background: none;
+	padding-left: 0px;
+}
+
+.rules-container-plugin ul.action-links a {
+  line-height: 1em;
+}
+
+.rules-container-plugin ul.action-links {
+	margin: 0px;
+}
+
+div.rules-container-plugin .rules-operations-add {
+  margin-bottom: 2em;
+}
+
 .rules_plugin {
   border: 1px solid #ACACAC;
   background-color: white;

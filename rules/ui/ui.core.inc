@@ -147,12 +147,18 @@ class RulesPluginUI extends FacesExtender {
   public function operations($element) {
     $name = $element->root()->name;
     $element_id = self::childElementId($element);
-
-    $render['edit'] = array(
-      '#markup' => l(t('Edit'), RulesPluginUI::path($name, $element_id)),
+    $render = array(
+      '#theme' => 'links__rules',
     );
-    $render['delete'] = array(
-      '#markup' => l(t('Delete'), RulesPluginUI::path($name, $element_id, 'delete')),
+    $render['#attributes']['class'][] = 'rules-operations';
+    $render['#attributes']['class'][] = 'action-links';
+    $render['#links']['edit'] = array(
+      'title' => t('Edit'),
+      'href' => RulesPluginUI::path($name, 'edit', $element_id),
+    );
+    $render['#links']['delete'] = array(
+      'title' => t('Delete'),
+      'href' => RulesPluginUI::path($name, 'delete', $element_id),
     );
     return $render;
   }
@@ -257,8 +263,8 @@ class RulesPluginUI extends FacesExtender {
    * Generates a path using the given operation for the element with the given
    * id of the configuration with the given name.
    */
-  public function path($name, $element_id, $op = NULL) {
-    return RULES_UI_RULE_PATH . '/' . $name . '/edit/' . $element_id . ($op ? '/' . $op : '');
+  public function path($name, $op, $element_id = NULL) {
+    return RULES_UI_RULE_PATH . '/' . $name . '/' . $op . (isset($element_id) ? '/' . $element_id : '');
   }
 
   /**
@@ -288,6 +294,9 @@ class RulesContainerPluginUI extends RulesPluginUI {
    * Generates a table for editing the contained elements.
    */
   public function form(&$form, &$form_state, $options = array(), $element, $iterator = NULL) {
+    $form['#type'] = 'container';
+    $form['#tree'] = TRUE;
+    $form['#attributes']['class'][] = 'rules-container-plugin';
 
     // Recurse over all element childrens or use the provided iterator.
     $iterator = new RecursiveIteratorIterator(isset($iterator) ? $iterator : $element, RecursiveIteratorIterator::SELF_FIRST);
@@ -296,7 +305,6 @@ class RulesContainerPluginUI extends RulesPluginUI {
       $id = self::childElementId($child);
 
       $is_container = $child instanceof RulesContainerPlugin;
-      $form['#tree'] = TRUE;
       $form['elements'][$id] = array(
         '#depth' => $child->depth() - $root_depth - 1,
         '#container' => $is_container,
@@ -321,7 +329,7 @@ class RulesContainerPluginUI extends RulesPluginUI {
     }
     $form['elements']['#options'] = $options;
     $form['elements']['#theme'] = 'rules_elements';
-    $form['elements'] += array('#empty' => t('None'), '#head' => t('Elements'));
+    $form['elements'] += array('#empty' => t('None'), '#heading' => t('Elements'));
   }
 
   /**
@@ -345,6 +353,34 @@ class RulesContainerPluginUI extends RulesPluginUI {
       $element->sortChildren(TRUE);
     }
   }
+
+  public function operations($element) {
+    $ops = parent::operations($element);
+    $add_ops = self::addOperations($element);
+    $ops['#links'] += $add_ops['#links'];
+    return $ops;
+  }
+
+  /**
+   * Gets the Add-* operations for the given element.
+   */
+  public function addOperations($element) {
+    $name = $element->root()->name;
+    $render = array(
+      '#theme' => 'links__rules',
+    );
+    $render['#attributes']['class'][] = 'rules-operations-add';
+    $render['#attributes']['class'][] = 'action-links';
+    foreach (rules_fetch_data('plugin_info') as $plugin => $info) {
+      if (!empty($info['embeddable']) && $element instanceof $info['embeddable']) {
+        $render['#links']['add_' . $plugin] = array(
+          'title' => t('Add !name', array('!name' => $plugin)),
+          'href' => RulesPluginUI::path($name, 'add/' . $plugin),
+        );
+      }
+    }
+    return $render;
+  }
 }
 
 /**
@@ -352,24 +388,26 @@ class RulesContainerPluginUI extends RulesPluginUI {
  */
 class RulesConditionContainerUI extends RulesContainerPluginUI {
 
+  public function form(&$form, &$form_state, $options = array(), $element, $iterator = NULL) {
+    parent::form($form, $form_state, $options, $element, $iterator);
+    // Add the add-* operation links.
+    $form['add'] = self::addOperations($element);
+    $form['#attributes']['class'][] = 'rules-condition-container';
+    $form['elements']['#heading'] = t('Conditions');
+  }
+}
 
-  public function operations($element) {
-    $name = $element->root()->name;
-    $element_id = self::childElementId($element);
+/**
+ * UI for Rules action container.
+ */
+class RulesActionContainerUI extends RulesContainerPluginUI {
 
-    $render['edit'] = array(
-      '#markup' => l(t('Edit'), RulesPluginUI::path($name, $element_id)),
-    );
-    $render['delete'] = array(
-      '#markup' => l(t('Delete'), RulesPluginUI::path($name, $element_id, 'delete')),
-    );
-    $render['add_or'] = array(
-      '#markup' => l(t('+ Add or'), RULES_UI_RULE_PATH . '/' . $name . '/add/or'),
-    );
-    $render['add_and'] = array(
-      '#markup' => l(t('+ Add and'), RULES_UI_RULE_PATH . '/' . $name . '/add/and'),
-    );
-    return $render;
+  public function form(&$form, &$form_state, $options = array(), $element, $iterator = NULL) {
+    parent::form($form, $form_state, $options, $element, $iterator);
+    // Add the add-* operation links.
+    $form['add'] = self::addOperations($element);
+    $form['#attributes']['class'][] = 'rules-action-container';
+    $form['elements']['#heading'] = t('Actions');
   }
 }
 

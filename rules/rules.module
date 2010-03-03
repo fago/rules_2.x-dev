@@ -324,6 +324,7 @@ function rules_rules_plugin_info() {
   return array(
     'condition' => array(
       'class' => 'RulesCondition',
+      'embeddable' => 'RulesConditionContainer',
       'extenders' => array (
         'RulesPluginImplInterface' => array(
           'class' => 'RulesAbstractPluginDefaults',
@@ -332,6 +333,7 @@ function rules_rules_plugin_info() {
     ),
     'action' => array(
       'class' => 'RulesAction',
+      'embeddable' => 'RulesActionContainer',
       'extenders' => array (
         'RulesPluginImplInterface' => array(
           'class' => 'RulesAbstractPluginDefaults',
@@ -340,6 +342,7 @@ function rules_rules_plugin_info() {
     ),
     'or' => array(
       'class' => 'RulesOr',
+      'embeddable' => 'RulesConditionContainer',
       'extenders' => array(
         'RulesPluginUIInterface' => array(
           'class' => 'RulesConditionContainerUI',
@@ -348,6 +351,7 @@ function rules_rules_plugin_info() {
     ),
     'and' => array(
       'class' => 'RulesAnd',
+      'embeddable' => 'RulesConditionContainer',
       'extenders' => array(
         'RulesPluginUIInterface' => array(
           'class' => 'RulesConditionContainerUI',
@@ -356,7 +360,7 @@ function rules_rules_plugin_info() {
     ),
     'rule' => array(
       'class' => 'Rule',
-      'embeddable' => TRUE,
+      'embeddable' => 'RulesRuleSet',
       'extenders' => array(
         //Interfaces => array( class => className / methods => array of Methods)
       ),
@@ -366,6 +370,7 @@ function rules_rules_plugin_info() {
     ),
     'loop' => array(
       'class' => 'RulesLoop',
+      'embeddable' => 'RulesActionContainer',
       'extenders' => array(
         'RulesPluginUIInterface' => array(
           'class' => 'RulesContainerPluginUI',
@@ -387,7 +392,7 @@ function rules_rules_plugin_info() {
     ),
     'rule set' => array(
       'class' => 'RulesRuleSet',
-      // Rule sets don't get embedded - we use a separate action to execute it.
+      // Rule sets don't get embedded - we use a separate action to execute.
       'embeddable' => FALSE,
     ),
   );

@@ -11,9 +11,6 @@
 function theme_rules_element_view($variables) {
   $form = $variables['form'];
 
-  //TODO: needs to be specified in the render array
-  drupal_add_css(drupal_get_path('module', 'rules') . '/ui/rules.css');
-
   $output = '';
   $output .= '<div class="rules_plugin">';
   $output .= '<div class="rules_plugin_head">';
@@ -62,16 +59,12 @@ function theme_rules_element_view($variables) {
 function theme_rules_elements($variables) {
   $form = $variables['element'];
   $form['#theme'] = 'table';
-  $form['#header'] = array($form['#head'], t('Weight'), t('Operations'));
-  $form['#attributes']['id'] = drupal_html_id($form['#head']);
+  $form['#header'] = array($form['#heading'], t('Weight'), t('Operations'));
+  $form['#attributes']['id'] = drupal_html_id($form['#heading']);
+  $form['#attached']['css'] = array(drupal_get_path('module', 'rules') . '/ui/rules.css');
 
   foreach (element_children($form) as $element_id) {
     $element = &$form[$element_id];
-    // Build a list of operations.
-    $operations = array();
-    foreach (element_children($element['operations']) as $op) {
-      $operations[] = drupal_render($element['operations'][$op]);
-    }
 
     // Add special classes to be used for tabledrag.js.
     $element['parent_id']['#attributes']['class'] = array('rules-parent-id');
@@ -81,7 +74,7 @@ function theme_rules_elements($variables) {
     $row = array();
     $row[] = theme('indentation', array('size' => $element['#depth'])) . drupal_render($element['label']);
     $row[] = drupal_render($element['weight']) . drupal_render($element['parent_id']) . drupal_render($element['element_id']);
-    $row[] = array('class' => 'rules-operations', 'data' => implode(' ', $operations));
+    $row[] = array('class' => 'rules-operations', 'data' => drupal_render($element['operations']));
 
     $row = array('data' => $row) + $element['#attributes'];
     $row['class'][] = 'draggable';
