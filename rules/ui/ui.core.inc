@@ -153,12 +153,12 @@ class RulesPluginUI extends FacesExtender {
     $render['#attributes']['class'][] = 'rules-operations';
     $render['#attributes']['class'][] = 'action-links';
     $render['#links']['edit'] = array(
-      'title' => t('Edit'),
-      'href' => RulesPluginUI::path($name, 'edit', $element_id),
+      '#title' => t('Edit'),
+      '#href' => RulesPluginUI::path($name, 'edit', $element_id),
     );
     $render['#links']['delete'] = array(
-      'title' => t('Delete'),
-      'href' => RulesPluginUI::path($name, 'delete', $element_id),
+      '#title' => t('Delete'),
+      '#href' => RulesPluginUI::path($name, 'delete', $element_id),
     );
     return $render;
   }

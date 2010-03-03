@@ -56,6 +56,7 @@ function rules_ui_add_element($form, &$form_state, $rule, $type) {
 }
 
 function rules_ui_edit_element($form, &$form_state, $rule, $element) {
+  $form['#tree'] = TRUE;
   $form['title'] = array(
     '#markup' => $element->getElementName(),
     '#prefix' => '<h3>',
@@ -65,8 +66,9 @@ function rules_ui_edit_element($form, &$form_state, $rule, $element) {
   $form['arguments'] = array(
     '#type' => 'fieldset',
     '#title' => t('Arguments'),
+    '#prefix' => '<div id="rules-wrapper">',
+    '#suffix' => '</div>'
   );
-
   foreach($element->parameterInfo() as $name => $parameter) {
     $form['arguments'][$name] = array(
       '#type' => 'fieldset',
@@ -74,23 +76,31 @@ function rules_ui_edit_element($form, &$form_state, $rule, $element) {
       '#description' => (isset($parameter['description']) ? $parameter['description'] : ''),
     );
     $form['arguments'][$name]['switch'] = array(
-      '#type' => 'button',
-      '#value' => t('Switch to input'),
+      '#type' => 'select',
+      '#title' => t('Select a mode'),
+      '#options' => array(
+       0 => 'data',
+       1 => 'input',
+      ),
       '#ajax' => array(
-        'callback' => 'rules_admin_parameter_replace',
-        'wrapper' => 'rules-' . $name . '-wrapper',
-        'method' => 'replace',
-        'effect' => 'fade',
+        'callback' => 'rules_ui_parameter_replace',
+        'wrapper' => 'rules-wrapper',
       ),
     );
-    $form['arguments'][$name]['selector'] = array(
-      '#type' => 'select',
-      '#title' => t('Data'),
-      '#options' => array(),
-      '#prefix' => '<div id="rules-' . $name . '-wrapper" >',
-      '#suffix' => '</div>',
-    );
-    $form_state['rules']['paramter'] = $name;
+    if (empty($form_state['values']['arguments'][$name]['switch'])) {
+      $form['arguments'][$name]['input'] = array(
+        '#type' => 'select',
+        '#title' => t('Data'),
+        '#options' => array(),
+      );
+    }
+    else{
+      $form['arguments'][$name]['input'] = array(
+        '#type' => 'textfield',
+        '#title' => t('Value'),
+      );
+    }
+    $form_state['rules']['paramters'][$name] = $parameter;
   }
   return $form;
 }
@@ -101,11 +111,6 @@ function rules_ui_edit_element_submit($form, &$form_state) {
 }
 
 function rules_ui_parameter_replace($form, $form_state) {
-  $name = $form_state['rules']['paramter'];
-  $form['arguments'][$name]['selector'] = array(
-    '#type' => 'textfield',
-    '#title' => t('Value'),
-    '#prefix' => '<div id="rules-' . $name . '-wrapper" >',
-  );
-  return $form['arguments'][$name]['selector'];
+
+  return $form['arguments'];
 }
