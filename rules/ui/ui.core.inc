@@ -309,7 +309,7 @@ class RulesContainerPluginUI extends RulesPluginUI {
         '#depth' => $child->depth() - $root_depth - 1,
         '#container' => $is_container,
       );
-      $label = $is_container ? check_plain($child->label()) : l($child->label(), RulesPluginUI::path($element->root()->name, $id));
+      $label = $is_container ? check_plain($child->label()) : l($child->label(), RulesPluginUI::path($element->root()->name, 'edit', $id));
       $form['elements'][$id]['label'] = array(
         '#markup' => $label,
       );

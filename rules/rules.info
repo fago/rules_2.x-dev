@@ -21,6 +21,5 @@ files[] = modules/user.rules.inc
 files[] = ui/ui.core.inc
 files[] = ui/ui.forms.inc
 files[] = ui/ui.plugins.inc
-files[] = ui/ui.rules.inc
 files[] = ui/ui.theme.inc
 dependencies[] = entity_metadata
