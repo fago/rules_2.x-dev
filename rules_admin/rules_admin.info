@@ -6,5 +6,4 @@ version = VERSION
 core = 7.x
 files[] = rules_admin.module
 files[] = rules_admin.inc
-files[] = rules_admin.rule_forms.inc
 dependencies[] = rules
