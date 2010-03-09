@@ -55,6 +55,9 @@ function rules_ui_add_element($form, &$form_state, $rule, $type) {
   return $form;
 }
 
+/**
+ * Edit an action or condition
+ */
 function rules_ui_edit_element($form, &$form_state, $rule, $element) {
   $form['#tree'] = TRUE;
   $form['title'] = array(
@@ -69,47 +72,78 @@ function rules_ui_edit_element($form, &$form_state, $rule, $element) {
     '#prefix' => '<div id="rules-wrapper">',
     '#suffix' => '</div>'
   );
+  $data = rules_fetch_data('data_info');
+
   foreach($element->parameterInfo() as $name => $parameter) {
-    $form['arguments'][$name] = array(
+      $form['arguments'][$name] = array(
       '#type' => 'fieldset',
       '#title' => $parameter['label'],
       '#description' => (isset($parameter['description']) ? $parameter['description'] : ''),
     );
-    $form['arguments'][$name]['switch'] = array(
-      '#type' => 'select',
-      '#title' => t('Select a mode'),
-      '#options' => array(
-       0 => 'data',
-       1 => 'input',
+    $link_id = drupal_html_id('rules-parameter-switch-' . $name);
+    $form['arguments'][$name]['link'] = array(
+      '#type' => 'link',
+      '#href' => '#',
+      '#title' => t('Switch'),
+      // #id is used for ajax js code generation.
+      '#id' => $link_id,
+      // Needed to actually output the #id.
+      '#options' => array('attributes' => array('id' => $link_id)),
+      '#process' => array('ajax_process_form'),
+      '#prefix' => '<div class="rules_hidden rules_parameter_switch">',
+      '#suffix' => '</div>',
+      '#attached' => array(
+        'js' => array(drupal_get_path('module', 'rules') . '/ui/rules.ui.js'),
+        'css' => array(drupal_get_path('module', 'rules') . '/ui/rules.ui.css'),
       ),
+      '#ajax' => array(
+        'callback' => 'rules_ui_parameter_replace',
+        'wrapper' => 'rules-wrapper',
+        'event' => 'click',
+        // button #name => #value
+        'trigger_as' => array('param_' . $name => t('Switch')),
+      ),
+    );
+    $form['arguments'][$name]['switch'] = array(
+      '#type' => 'submit',
+      '#name' => 'param_' . $name,
+      '#value' => t('Switch'),
+      '#submit' => array('rules_ui_parameter_replace_submit'),
       '#ajax' => array(
         'callback' => 'rules_ui_parameter_replace',
         'wrapper' => 'rules-wrapper',
       ),
     );
-    if (empty($form_state['values']['arguments'][$name]['switch'])) {
-      $form['arguments'][$name]['input'] = array(
-        '#type' => 'select',
-        '#title' => t('Data'),
-        '#options' => array(),
-      );
+    // Init mode.
+    $form_state['param_modes'][$name] = isset($form_state['param_modes'][$name]) ? $form_state['param_modes'][$name] : 'selector';
+    // Switch mode by button.
+    if (isset($form_state['values']['param_' . $name])) {
+      $form_state['param_modes'][$name] = $form_state['param_modes'][$name] != 'selector' ? 'selector' : 'input';
     }
-    else{
-      $form['arguments'][$name]['input'] = array(
-        '#type' => 'textfield',
-        '#title' => t('Value'),
-      );
+    if (isset($form_state['clicked_button']) && $form_state['clicked_button']['#name'] == 'param' . $name) {
+      $form_state['param_modes'][$name] = $form_state['param_modes'][$name] != 'selector' ? 'selector' : 'input';
     }
-    $form_state['rules']['paramters'][$name] = $parameter;
+    if ($form_state['param_modes'][$name] == 'selector') {
+      RulesArgumentUI::form_selector($form['arguments'][$name], $form_state, array(), $parameter);
+    }
+    else {
+      RulesArgumentUI::form_input($form['arguments'][$name], $form_state, array(), $parameter);
+    }
   }
   return $form;
 }
 
-function rules_ui_edit_element_submit($form, &$form_state) {
-  //$name = $form_state['rules']['parameter']
+/**
+ * Replacing the parameter input mode without javascript
+ */
+function rules_ui_parameter_replace_submit($form, &$form_state) {
+  $form_state['rebuild'] = TRUE;
   $form['arguments'][] = '';
 }
 
+/**
+ * Replacing the parameter input mode with javascript
+ */
 function rules_ui_parameter_replace($form, $form_state) {
 
   return $form['arguments'];

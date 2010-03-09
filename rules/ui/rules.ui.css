@@ -16,3 +16,7 @@
 div.rules-container-plugin .rules-operations-add {
   margin-bottom: 2em;
 }
+
+.rules_hidden {
+  Display:none;
+}

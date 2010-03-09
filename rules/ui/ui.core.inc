@@ -412,6 +412,26 @@ class RulesActionContainerUI extends RulesContainerPluginUI {
 }
 
 /**
+ * UI for rules arguments
+ */
+class RulesArgumentUI {
+  public function form_selector(&$form, &$form_state, $options = array(), $argument) {
+    $form['input'] = array(
+      '#type' => 'select',
+      '#title' => t('Data'),
+      '#options' => array(),
+    );
+  }
+
+  public function form_input(&$form, &$form_state, $options = array(), $argument) {
+      $form['input'] = array(
+        '#type' => 'textfield',
+        '#title' => t('Value'),
+      );
+  }
+}
+
+/**
  * Provides the interface used for implementing an abstract plugin by using
  * the Faces extension mechanism.
  */
@@ -479,3 +499,4 @@ class RulesAbstractPluginDefaults extends RulesPluginUI {
   //public function operations() {}
 
 }
+
