@@ -441,6 +441,14 @@ abstract class RulesPlugin extends RulesExtendable {
    * this configuration.
    */
   public function access() {
+    foreach ($this->info['parameter'] as $name => $info) {
+      if (isset($this->settings[$name . ':select']) && $wrapper = $this->applyDataSelector($this->settings[$name . ':select'])) {
+        if ($wrapper->access('view') === FALSE) {
+          return FALSE;
+        }
+        //TODO: Check input evaluator access.
+      }
+    }
     return TRUE;
   }
 
@@ -739,7 +747,10 @@ abstract class RulesAbstractPlugin extends RulesPlugin {
 
   public function access() {
     $this->processSettings();
-    return $this->__call('access');
+    if (!empty($this->info['access callback']) && !call_user_func($this->info['access callback'], $this->itemName, $this->getElementName())) {
+      return FALSE;
+    }
+    return parent::access() && $this->__call('access');
   }
 
   public function integrityCheck() {

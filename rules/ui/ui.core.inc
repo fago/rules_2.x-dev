@@ -67,12 +67,6 @@ interface RulesPluginUIInterface {
   public function help();
 
   /**
-   * Checks whether the user has access to configure this element or rule
-   * configuration.
-   */
-  public function access();
-
-  /**
    * Returns ui operations for this element.
    */
   public function operations();
@@ -159,22 +153,6 @@ class RulesPluginUI extends FacesExtender implements RulesPluginUIInterface {
       );
     }
     return $form;
-  }
-
-  /**
-   * Implements RulesPluginUIInterface.
-   */
-  public function access() {
-    $info = $this->element->property('info');
-    foreach ($info['parameter'] as $name => $info) {
-      if (isset($this->element->settings[$name . ':select']) && $wrapper = $this->element->call('applyDataSelector', array($this->element->settings[$name . ':select']))) {
-        if ($wrapper->access('view') === FALSE) {
-          return FALSE;
-        }
-        //TODO: Check input evaluator access.
-      }
-    }
-    return TRUE;
   }
 
   /**
@@ -485,7 +463,7 @@ class RulesArgumentUI {
  * Provides the interface used for implementing an abstract plugin by using
  * the Faces extension mechanism.
  */
-interface RulesPluginImplInterface extends RulesPluginUIInterface {
+interface RulesPluginImplInterface {
 
   public function execute();
 
@@ -503,6 +481,12 @@ interface RulesPluginImplInterface extends RulesPluginUIInterface {
    * execution dependent on the settings.
    */
   public function process();
+
+  /**
+   * Checks whether the user has access to configure this element or rule
+   * configuration.
+   */
+  public function access();
 }
 
 /**
@@ -511,7 +495,7 @@ interface RulesPluginImplInterface extends RulesPluginUIInterface {
  *
  * @see RulesPluginImplInterface
  */
-class RulesAbstractPluginDefaults extends RulesPluginUI implements RulesPluginImplInterface {
+class RulesAbstractPluginDefaults extends FacesExtender implements RulesPluginImplInterface {
 
   public function execute() {
     throw new RulesException($this->element->getPluginName() .": Execution implementation is missing.");
@@ -521,11 +505,7 @@ class RulesAbstractPluginDefaults extends RulesPluginUI implements RulesPluginIm
    * Implements RulesPluginImplInterface.
    */
   public function access() {
-    $info = $this->property('info');
-    if (!empty($info['access callback']) && !call_user_func($info['access callback'], $this->property('itemName'), $this->element->getElementName())) {
-      return FALSE;
-    }
-    return $this->element->extender('RulesPluginUI')->access();
+    return TRUE;
   }
 
   public function validate() {}
