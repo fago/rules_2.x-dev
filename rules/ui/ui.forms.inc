@@ -33,6 +33,9 @@ function rules_ui_form_edit_rules_config_submit($form, &$form_state) {
     $config->form_submit($form, $form_state);
   }
   $form_state['rebuild'] = TRUE;
+  // We need to clear the values so the new weight-id combinations can take
+  // affect on rebuild.
+  $form_state['input'] = array();
 }
 
 /**

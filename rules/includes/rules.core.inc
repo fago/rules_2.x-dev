@@ -260,6 +260,13 @@ abstract class RulesPlugin extends RulesExtendable {
   }
 
   /**
+   * Returns whether the element is the root of the configuration.
+   */
+  public function isRoot() {
+    return empty($this->parent);
+  }
+
+  /**
    * Returns the depth of this element in the configuration.
    */
   public function depth() {

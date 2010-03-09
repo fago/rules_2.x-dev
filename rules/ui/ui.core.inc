@@ -86,6 +86,19 @@ interface RulesPluginUIInterface {
 class RulesPluginUI extends FacesExtender implements RulesPluginUIInterface {
 
   /**
+   * @var RulesPlugin
+   */
+  protected $element;
+
+  /**
+   * Provide $this->element to make the code more meaningful.
+   */
+  public function __construct(FacesExtendable $object) {
+    parent::__construct($object);
+    $this->element = $object;
+  }
+
+  /**
    * Implements RulesPluginUIInterface.
    */
   //TODO: Show element edit form.
@@ -93,19 +106,46 @@ class RulesPluginUI extends FacesExtender implements RulesPluginUIInterface {
 
     $form['#theme'] = 'rules_element_view';
     $form['head'] = array(
-      '#markup' => check_plain($this->object->label()),
+      '#markup' => check_plain($this->element->label()),
     );
   }
 
   /**
    * Implements RulesPluginUIInterface.
    */
-  public function form_validate() {}
+  public function form_validate(&$form, &$form_state) {
+    $this->form_extract_values($form, $form_state);
+
+    if (!$this->element->access()) {
+      form_set_error(NULL, t('Access violation!'));
+    }
+    try {
+      $this->element->integrityCheck();
+    }
+    catch (RulesException $e) {
+      //TODO: Add visual feedback which element had troubles.
+      form_set_error('', $e->getMessage());
+    }
+  }
+
+  /**
+   * Applies the values of the form to the element.
+   */
+  function form_extract_values($form, $form_state) {
+
+  }
 
   /**
    * Implements RulesPluginUIInterface.
    */
-  public function form_submit() {}
+  public function form_submit(&$form, &$form_state) {
+    $this->element->save();
+    // Clear the element id index map, so the map is regenerated in case of a
+    // form rebuild. That way the map is indentical to the map that would be
+    // generated on the next page load.
+    self::clearElementMap($this->element->root()->map);
+    drupal_set_message(t('Your changes have been saved.'));
+  }
 
   /**
    * Implements RulesPluginUIInterface.
@@ -113,7 +153,7 @@ class RulesPluginUI extends FacesExtender implements RulesPluginUIInterface {
   //TODO: Return info render array for use in table.
   public function buildContent() {
     $form['parameter']['#markup'] = t('Parameter:');
-    foreach($this->object->parameterInfo() as $name => $parameter) {
+    foreach($this->element->parameterInfo() as $name => $parameter) {
       $form['parameter'][$name] = array(
         '#markup' => $name,
       );
@@ -125,9 +165,9 @@ class RulesPluginUI extends FacesExtender implements RulesPluginUIInterface {
    * Implements RulesPluginUIInterface.
    */
   public function access() {
-    $info = $this->object->property('info');
+    $info = $this->element->property('info');
     foreach ($info['parameter'] as $name => $info) {
-      if (isset($this->object->settings[$name . ':select']) && $wrapper = $this->object->call('applyDataSelector', array($this->object->settings[$name . ':select']))) {
+      if (isset($this->element->settings[$name . ':select']) && $wrapper = $this->element->call('applyDataSelector', array($this->element->settings[$name . ':select']))) {
         if ($wrapper->access('view') === FALSE) {
           return FALSE;
         }
@@ -141,8 +181,8 @@ class RulesPluginUI extends FacesExtender implements RulesPluginUIInterface {
    * Implements RulesPluginUIInterface.
    */
   public function operations() {
-    $name = $this->object->root()->name;
-    $element_id = self::childElementId($this->object);
+    $name = $this->element->root()->name;
+    $element_id = $this->childElementId();
     $render = array(
       '#theme' => 'links__rules',
     );
@@ -164,12 +204,21 @@ class RulesPluginUI extends FacesExtender implements RulesPluginUIInterface {
    */
   public function help() {}
 
+  /**
+   * Returns the child element id of the given child.
+   */
+  public function childElementId($element = NULL) {
+    $element = isset($element) ? $element : $this->element;
+    self::indexConfig($element);
+    return $element->childElementId;
+  }
 
   /**
    * Returns the child element associated with the given id.
    */
-  public function getChildElementById(RulesPlugin $rules_config, $id) {
-    self::indexRule($rules_config);
+  public static function getChildElementById($rules_config, $id) {
+    $rules_config = $rules_config->root();
+    self::indexConfig($rules_config);
     if (isset($rules_config->map[$id])) {
       return $rules_config->map[$id];
     }
@@ -177,22 +226,15 @@ class RulesPluginUI extends FacesExtender implements RulesPluginUIInterface {
   }
 
   /**
-   * Returns the child element id of the given child.
-   */
-  public function childElementId(RulesPlugin $element) {
-    self::indexRule($element);
-    return $element->childElementId;
-  }
-
-  /**
    * Generates child element ids for lookup up elements.
    */
-  protected function indexRule(RulesPlugin $element, &$map = array()) {
+  protected static function indexConfig(RulesPlugin $element, &$map = array()) {
     // Generate them only once.
     if (!isset($element->childElementId)) {
-      $counter = &drupal_static(__FUNCTION__, 0);
+      $counter = &drupal_static(__FUNCTION__);
 
-      if (!$counter) {
+      if (!$map) {
+        $counter = 0;
         // Get the rules config.
         $element = $element->root();
         $element->map = array();
@@ -204,10 +246,20 @@ class RulesPluginUI extends FacesExtender implements RulesPluginUIInterface {
 
       if ($element instanceof RulesContainerPlugin) {
         foreach ($element as $child) {
-          self::indexRule($child, $map);
+          self::indexConfig($child, $map);
         }
       }
     }
+  }
+
+  /**
+   * Clears the current element map.
+   */
+  protected static function clearElementMap(&$map) {
+    foreach ($map as $element) {
+      unset($element->childElementId);
+    }
+    unset($map);
   }
 
   /**
@@ -295,8 +347,8 @@ class RulesContainerPluginUI extends RulesPluginUI {
     $form['#attributes']['class'][] = 'rules-container-plugin';
 
     // Recurse over all element childrens or use the provided iterator.
-    $iterator = new RecursiveIteratorIterator(isset($iterator) ? $iterator : $this->object, RecursiveIteratorIterator::SELF_FIRST);
-    $root_depth = $this->object->depth();
+    $iterator = new RecursiveIteratorIterator(isset($iterator) ? $iterator : $this->element, RecursiveIteratorIterator::SELF_FIRST);
+    $root_depth = $this->element->depth();
     foreach ($iterator as $key => $child) {
       $id = self::childElementId($child);
 
@@ -305,7 +357,7 @@ class RulesContainerPluginUI extends RulesPluginUI {
         '#depth' => $child->depth() - $root_depth - 1,
         '#container' => $is_container,
       );
-      $label = $is_container ? check_plain($child->label()) : l($child->label(), RulesPluginUI::path($this->object->root()->name, 'edit', $id));
+      $label = $is_container ? check_plain($child->label()) : l($child->label(), RulesPluginUI::path($this->element->root()->name, 'edit', $id));
       $form['elements'][$id]['label'] = array(
         '#markup' => $label,
       );
@@ -339,14 +391,14 @@ class RulesContainerPluginUI extends RulesPluginUI {
     }
     // Now apply the new hierarchy.
     if (isset($values)) {
-      $root_element = $this->object->root();
+      $root_element = $this->element->root();
       foreach ($values['elements'] as $id => $data) {
         $child = self::getChildElementById($root_element, $id);
         $child->weight = $data['weight'];
         $parent = self::getChildElementById($root_element, $data['parent_id']);
-        $child->setParent($parent ? $parent : $this->object);
+        $child->setParent($parent ? $parent : $this->element);
       }
-      $this->object->sortChildren(TRUE);
+      $this->element->sortChildren(TRUE);
     }
   }
 
@@ -361,17 +413,18 @@ class RulesContainerPluginUI extends RulesPluginUI {
    * Gets the Add-* operations for the given element.
    */
   public function addOperations() {
-    $name = $this->object->root()->name;
+    $name = $this->element->root()->name;
+    $element_id = $this->childElementId();
     $render = array(
       '#theme' => 'links__rules',
     );
     $render['#attributes']['class'][] = 'rules-operations-add';
     $render['#attributes']['class'][] = 'action-links';
     foreach (rules_fetch_data('plugin_info') as $plugin => $info) {
-      if (!empty($info['embeddable']) && $this->object instanceof $info['embeddable']) {
+      if (!empty($info['embeddable']) && $this->element instanceof $info['embeddable']) {
         $render['#links']['add_' . $plugin] = array(
           'title' => t('Add !name', array('!name' => $plugin)),
-          'href' => RulesPluginUI::path($name, 'add/' . $plugin),
+          'href' => RulesPluginUI::path($name, 'add/' . $plugin, $element_id),
         );
       }
     }
@@ -461,7 +514,7 @@ interface RulesPluginImplInterface extends RulesPluginUIInterface {
 class RulesAbstractPluginDefaults extends RulesPluginUI implements RulesPluginImplInterface {
 
   public function execute() {
-    throw new RulesException($this->object->getPluginName() .": Execution implementation is missing.");
+    throw new RulesException($this->element->getPluginName() .": Execution implementation is missing.");
   }
 
   /**
@@ -469,10 +522,10 @@ class RulesAbstractPluginDefaults extends RulesPluginUI implements RulesPluginIm
    */
   public function access() {
     $info = $this->property('info');
-    if (!empty($info['access callback']) && !call_user_func($info['access callback'], $this->property('itemName'), $this->object->getElementName())) {
+    if (!empty($info['access callback']) && !call_user_func($info['access callback'], $this->property('itemName'), $this->element->getElementName())) {
       return FALSE;
     }
-    return $this->object->extender('RulesPluginUI')->access();
+    return $this->element->extender('RulesPluginUI')->access();
   }
 
   public function validate() {}

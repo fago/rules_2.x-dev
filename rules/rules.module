@@ -662,6 +662,7 @@ function rules_menu() {
     'page callback' => 'drupal_get_form',
     'page arguments' => array('rules_ui_form_edit_rules_config', 5),
     'access arguments' => array('administer rules'),
+    'description' => 'Manage reaction rules and rule components.',
     'type' => MENU_CALLBACK,
     'file' => 'ui/ui.forms.inc',
   );

@@ -12,12 +12,12 @@ class RulesRuleUI extends RulesContainerPluginUI {
 
   protected $rule, $conditions;
 
-  public function __construct($object) {
+  public function __construct(FacesExtendable $object) {
     parent::__construct($object);
     $this->rule = $object;
     // Make sure the condition is intialized and then get it.
-    $rule->conditions();
-    $this->conditions = $rule->property('conditions');
+    $this->rule->conditions();
+    $this->conditions = $this->property('conditions');
   }
 
   public function form(&$form, &$form_state, $options = array()) {
@@ -25,7 +25,7 @@ class RulesRuleUI extends RulesContainerPluginUI {
     $this->conditions->form($form['conditions'], $form_state, $options);
 
     // Add actions form.
-    parent::form($form['actions'], $form_state, $options, $this->rule, $this->rule->actions());
+    parent::form($form['actions'], $form_state, $options, $this->rule->actions());
 
     // Add the settings in a separate fieldset below.
     $form['settings'] = array(
@@ -56,7 +56,7 @@ class RulesRuleUI extends RulesContainerPluginUI {
   }
 
   /**
-   * Applies the values of the form to the given rule configuration.
+   * Applies the values of the form to the rule configuration.
    */
   function form_extract_values($form, $form_state) {
     $this->rule->label = $form_state['values']['label'];
@@ -64,26 +64,6 @@ class RulesRuleUI extends RulesContainerPluginUI {
     // Run condition and action container value extraction.
     $this->conditions->extender('RulesConditionContainerUI')->form_extract_values($form['conditions'], $form_state);
     parent::form_extract_values($form['actions'], $form_state);
-  }
-
-  public function form_validate(&$form, &$form_state) {
-    $this->form_extract_values($form, $form_state);
-
-    if (!$this->rule->access()) {
-      form_set_error(NULL, t('Access violation!'));
-    }
-    try {
-      $this->rule->integrityCheck();
-    }
-    catch (RulesException $e) {
-      //TODO: Add visual feedback which element had troubles.
-      form_set_error('', $e->getMessage());
-    }
-  }
-
-  public function form_submit(&$form, &$form_state) {
-    $this->rule->save();
-    drupal_set_message(t('Your changes have been saved.'));
   }
 }
 
@@ -109,7 +89,7 @@ class RulesReactionRuleUI extends RulesRuleUI {
     }
 
     $form['elements']['events']['add'] = array(
-      '#markup' => t(l('+ Add event', RULES_UI_RULE_PATH . '/' . $rule->name . '/add/event')),
+      '#markup' => t(l('+ Add event', RULES_UI_RULE_PATH . '/' . $this->rule->name . '/add/event')),
     );
 
     parent::form($form, $form_state, $options);

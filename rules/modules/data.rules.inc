@@ -56,11 +56,13 @@ function rules_data_data_info() {
     )
   );
   foreach (entity_get_info() as $type => $info) {
-    $return[$type] = array(
-      'label' => $info['label'],
-      'parent' => 'entity',
-      'wrap' => TRUE,
-    );
+    if (!empty($info['label'])) {
+      $return[$type] = array(
+        'label' => $info['label'],
+        'parent' => 'entity',
+        'wrap' => TRUE,
+      );
+    }
   }
   return $return;
 }
