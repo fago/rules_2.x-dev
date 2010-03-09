@@ -72,6 +72,8 @@ function rules_ui_edit_element($form, &$form_state, $rule, $element) {
     '#prefix' => '<div id="rules-wrapper">',
     '#suffix' => '</div>'
   );
+  $data = rules_fetch_data('data_info');
+
   foreach($element->parameterInfo() as $name => $parameter) {
       $form['arguments'][$name] = array(
       '#type' => 'fieldset',
@@ -122,17 +124,10 @@ function rules_ui_edit_element($form, &$form_state, $rule, $element) {
       $form_state['param_modes'][$name] = $form_state['param_modes'][$name] != 'selector' ? 'selector' : 'input';
     }
     if ($form_state['param_modes'][$name] == 'selector') {
-      $form['arguments'][$name]['input'] = array(
-        '#type' => 'select',
-        '#title' => t('Data'),
-        '#options' => array(),
-      );
+      RulesArgumentUI::form_selector($form['arguments'][$name], $form_state, array(), $parameter);
     }
     else {
-      $form['arguments'][$name]['input'] = array(
-        '#type' => 'textfield',
-        '#title' => t('Value'),
-      );
+      RulesArgumentUI::form_input($form['arguments'][$name], $form_state, array(), $parameter);
     }
   }
   return $form;
