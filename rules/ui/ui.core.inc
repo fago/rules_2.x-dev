@@ -416,7 +416,6 @@ class RulesActionContainerUI extends RulesContainerPluginUI {
  */
 class RulesArgumentUI {
   public function form_selector(&$form, &$form_state, $options = array(), $argument) {
-    firep($argument);
     $form['input'] = array(
       '#type' => 'select',
       '#title' => t('Data'),
