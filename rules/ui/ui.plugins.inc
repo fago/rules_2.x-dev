@@ -10,14 +10,22 @@
  */
 class RulesRuleUI extends RulesContainerPluginUI {
 
-  public function form(&$form, &$form_state, $options = array(), $rule) {
+  protected $rule, $conditions;
+
+  public function __construct($object) {
+    parent::__construct($object);
+    $this->rule = $object;
     // Make sure the condition is intialized and then get it.
     $rule->conditions();
-    $form['conditions'] = array();
-    RulesConditionContainerUI::form($form['conditions'], $form_state, $options, $rule->property('conditions'));
+    $this->conditions = $rule->property('conditions');
+  }
 
-    $form['actions'] = array();
-    RulesActionContainerUI::form($form['actions'], $form_state, $options, $rule, $rule->actions());
+  public function form(&$form, &$form_state, $options = array()) {
+    $form += array('conditions' => array(), 'actions' => array());
+    $this->conditions->form($form['conditions'], $form_state, $options);
+
+    // Add actions form.
+    parent::form($form['actions'], $form_state, $options, $this->rule, $this->rule->actions());
 
     // Add the settings in a separate fieldset below.
     $form['settings'] = array(
@@ -29,14 +37,14 @@ class RulesRuleUI extends RulesContainerPluginUI {
     $form['settings']['label'] = array(
       '#type' => 'textfield',
       '#title' => 'Label',
-      '#default_value' => $rule->label,
+      '#default_value' => $this->rule->label,
       '#required' => TRUE,
     );
     // TODO: Description as field
     $form['settings']['weight'] = array(
       '#type' => 'weight',
       '#title' => t('Weight'),
-      '#default_value' => $rule->weight,
+      '#default_value' => $this->rule->weight,
       '#delta' => 10,
     );
 
@@ -44,29 +52,28 @@ class RulesRuleUI extends RulesContainerPluginUI {
       '#type' => 'submit',
       '#value' => t('Save Changes'),
     );
-    $form_state['rules_config'][$rule->name] = $rule;
+    $form_state['rules_config'][$this->rule->name] = $this->rule;
   }
 
   /**
    * Applies the values of the form to the given rule configuration.
    */
-  function form_extract_values($form, $form_state, $rule) {
-    $rule->label = $form_state['values']['label'];
-    $rule->weight = $form_state['values']['weight'];
+  function form_extract_values($form, $form_state) {
+    $this->rule->label = $form_state['values']['label'];
+    $this->rule->weight = $form_state['values']['weight'];
     // Run condition and action container value extraction.
-    RulesContainerPluginUI::form_extract_values($form['conditions'], $form_state, $rule);
-    RulesActionContainerUI::form_extract_values($form['actions'], $form_state, $rule);
-
+    $this->conditions->extender('RulesConditionContainerUI')->form_extract_values($form['conditions'], $form_state);
+    parent::form_extract_values($form['actions'], $form_state);
   }
 
-  public function form_validate(&$form, &$form_state, $rule) {
-    self::form_extract_values($form, $form_state, $rule);
+  public function form_validate(&$form, &$form_state) {
+    $this->form_extract_values($form, $form_state);
 
-    if (!$rule->access()) {
+    if (!$this->rule->access()) {
       form_set_error(NULL, t('Access violation!'));
     }
     try {
-      $rule->integrityCheck();
+      $this->rule->integrityCheck();
     }
     catch (RulesException $e) {
       //TODO: Add visual feedback which element had troubles.
@@ -74,11 +81,10 @@ class RulesRuleUI extends RulesContainerPluginUI {
     }
   }
 
-  public function form_submit(&$form, &$form_state, $rule) {
-    $rule->save();
+  public function form_submit(&$form, &$form_state) {
+    $this->rule->save();
     drupal_set_message(t('Your changes have been saved.'));
   }
-
 }
 
 /**
@@ -86,7 +92,7 @@ class RulesRuleUI extends RulesContainerPluginUI {
  */
 class RulesReactionRuleUI extends RulesRuleUI {
 
-  public function form(&$form, &$form_state, $options = array(), $rule) {
+  public function form(&$form, &$form_state, $options = array()) {
 
     $form['elements']['events'] = array(
       '#type' => 'container',
@@ -94,7 +100,7 @@ class RulesReactionRuleUI extends RulesRuleUI {
     );
 
     $event_info = rules_fetch_data('event_info');
-    foreach($rule->events() as $event_name) {
+    foreach($this->rule->events() as $event_name) {
       $form['elements']['events'][$event_name] = array(
         '#markup' => check_plain($event_info[$event_name]['label']),
         '#prefix' => '<div>',
@@ -106,6 +112,6 @@ class RulesReactionRuleUI extends RulesRuleUI {
       '#markup' => t(l('+ Add event', RULES_UI_RULE_PATH . '/' . $rule->name . '/add/event')),
     );
 
-    parent::form($form, $form_state, $options, $rule);
+    parent::form($form, $form_state, $options);
   }
 }

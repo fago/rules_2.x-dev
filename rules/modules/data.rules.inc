@@ -282,7 +282,7 @@ function rules_data_action_info() {
  * Customize access check for data set action.
  */
 function rules_action_data_set_access(RulesAbstractPlugin $element) {
-  if (!RulesAbstractPluginDefaults::access($element)) {
+  if (!$element->extender('RulesAbstractPluginDefaults')->access()) {
     return FALSE;
   }
   if (isset($element->settings['data:select']) && $wrapper = $element->call('applyDataSelector', array($element->settings['data:select']))) {
@@ -294,7 +294,7 @@ function rules_action_data_set_access(RulesAbstractPlugin $element) {
  * Custom access callback for data create and fetch action.
  */
 function rules_action_entity_createfetch_access(RulesAbstractPlugin $element) {
-  if (!RulesAbstractPluginDefaults::access($element)) {
+  if (!$element->extender('RulesAbstractPluginDefaults')->access()) {
     return FALSE;
   }
   $op = $element->getElementName() == 'entity_create' ? 'create' : 'view';
@@ -381,7 +381,8 @@ function rules_action_entity_create_validate($element) {
 function rules_action_entity_create_process(RulesAbstractPlugin $element) {
   $wrapper = entity_metadata_wrapper($element->settings['type']);
   // Add the data type's needed parameter for loading to the parameter info.
-  foreach ($wrapper as $name => $info) {
+  foreach ($wrapper as $name => $child) {
+    $info = $child->info();
     if (!empty($info['required'])) {
       $info += array('type' => 'text');
       // Prefix parameter names to avoid name clashes with existing parameters.
@@ -396,7 +397,7 @@ function rules_action_entity_create_process(RulesAbstractPlugin $element) {
  * Custom access callback for data save and delete action.
  */
 function rules_action_entity_savedelete_access(RulesAbstractPlugin $element) {
-  if (!RulesAbstractPluginDefaults::access($element)) {
+  if (!$element->extender('RulesAbstractPluginDefaults')->access()) {
     return FALSE;
   }
   if ($wrapper = $element->call('applyDataSelector', array($element->settings['data:select']))) {

@@ -83,21 +83,17 @@ interface RulesPluginUIInterface {
  * Faces UI extender for all kind of Rules plugins. Provides various useful
  * methods for any rules UI.
  */
-class RulesPluginUI extends FacesExtender {
-
-  public function implementsFaces() {
-    return array('RulesPluginUIInterface');
-  }
+class RulesPluginUI extends FacesExtender implements RulesPluginUIInterface {
 
   /**
    * Implements RulesPluginUIInterface.
    */
   //TODO: Show element edit form.
-  public function form(&$form, &$form_state, $options = array(), $element) {
+  public function form(&$form, &$form_state, $options = array()) {
 
     $form['#theme'] = 'rules_element_view';
     $form['head'] = array(
-      '#markup' => check_plain($element->label()),
+      '#markup' => check_plain($this->object->label()),
     );
   }
 
@@ -115,9 +111,9 @@ class RulesPluginUI extends FacesExtender {
    * Implements RulesPluginUIInterface.
    */
   //TODO: Return info render array for use in table.
-  public function buildContent($element) {
+  public function buildContent() {
     $form['parameter']['#markup'] = t('Parameter:');
-    foreach($element->parameterInfo() as $name => $parameter) {
+    foreach($this->object->parameterInfo() as $name => $parameter) {
       $form['parameter'][$name] = array(
         '#markup' => $name,
       );
@@ -128,10 +124,10 @@ class RulesPluginUI extends FacesExtender {
   /**
    * Implements RulesPluginUIInterface.
    */
-  public function access($element) {
-    $info = $element->property('info');
+  public function access() {
+    $info = $this->object->property('info');
     foreach ($info['parameter'] as $name => $info) {
-      if (isset($element->settings[$name . ':select']) && $wrapper = $element->call('applyDataSelector', array($element->settings[$name . ':select']))) {
+      if (isset($this->object->settings[$name . ':select']) && $wrapper = $this->object->call('applyDataSelector', array($this->object->settings[$name . ':select']))) {
         if ($wrapper->access('view') === FALSE) {
           return FALSE;
         }
@@ -144,9 +140,9 @@ class RulesPluginUI extends FacesExtender {
   /**
    * Implements RulesPluginUIInterface.
    */
-  public function operations($element) {
-    $name = $element->root()->name;
-    $element_id = self::childElementId($element);
+  public function operations() {
+    $name = $this->object->root()->name;
+    $element_id = self::childElementId($this->object);
     $render = array(
       '#theme' => 'links__rules',
     );
@@ -166,7 +162,7 @@ class RulesPluginUI extends FacesExtender {
   /**
    * Implements RulesPluginUIInterface.
    */
-  public function help($element) {}
+  public function help() {}
 
 
   /**
@@ -263,7 +259,7 @@ class RulesPluginUI extends FacesExtender {
    * Generates a path using the given operation for the element with the given
    * id of the configuration with the given name.
    */
-  public function path($name, $op, $element_id = NULL) {
+  public static function path($name, $op, $element_id = NULL) {
     return RULES_UI_RULE_PATH . '/' . $name . '/' . $op . (isset($element_id) ? '/' . $element_id : '');
   }
 
@@ -293,14 +289,14 @@ class RulesContainerPluginUI extends RulesPluginUI {
   /**
    * Generates a table for editing the contained elements.
    */
-  public function form(&$form, &$form_state, $options = array(), $element, $iterator = NULL) {
+  public function form(&$form, &$form_state, $options = array(), $iterator = NULL) {
     $form['#type'] = 'container';
     $form['#tree'] = TRUE;
     $form['#attributes']['class'][] = 'rules-container-plugin';
 
     // Recurse over all element childrens or use the provided iterator.
-    $iterator = new RecursiveIteratorIterator(isset($iterator) ? $iterator : $element, RecursiveIteratorIterator::SELF_FIRST);
-    $root_depth = $element->depth();
+    $iterator = new RecursiveIteratorIterator(isset($iterator) ? $iterator : $this->object, RecursiveIteratorIterator::SELF_FIRST);
+    $root_depth = $this->object->depth();
     foreach ($iterator as $key => $child) {
       $id = self::childElementId($child);
 
@@ -309,7 +305,7 @@ class RulesContainerPluginUI extends RulesPluginUI {
         '#depth' => $child->depth() - $root_depth - 1,
         '#container' => $is_container,
       );
-      $label = $is_container ? check_plain($child->label()) : l($child->label(), RulesPluginUI::path($element->root()->name, 'edit', $id));
+      $label = $is_container ? check_plain($child->label()) : l($child->label(), RulesPluginUI::path($this->object->root()->name, 'edit', $id));
       $form['elements'][$id]['label'] = array(
         '#markup' => $label,
       );
@@ -335,7 +331,7 @@ class RulesContainerPluginUI extends RulesPluginUI {
   /**
    * Applies the values of the form to the given rule configuration.
    */
-  function form_extract_values($form, $form_state, $element) {
+  function form_extract_values($form, $form_state) {
     // Get the right form values.
     $values = $form_state['values'];
     foreach ($form['#parents'] as $key) {
@@ -343,20 +339,20 @@ class RulesContainerPluginUI extends RulesPluginUI {
     }
     // Now apply the new hierarchy.
     if (isset($values)) {
-      $root_element = $element->root();
+      $root_element = $this->object->root();
       foreach ($values['elements'] as $id => $data) {
         $child = self::getChildElementById($root_element, $id);
         $child->weight = $data['weight'];
         $parent = self::getChildElementById($root_element, $data['parent_id']);
-        $child->setParent($parent ? $parent : $element);
+        $child->setParent($parent ? $parent : $this->object);
       }
-      $element->sortChildren(TRUE);
+      $this->object->sortChildren(TRUE);
     }
   }
 
-  public function operations($element) {
-    $ops = parent::operations($element);
-    $add_ops = self::addOperations($element);
+  public function operations() {
+    $ops = parent::operations();
+    $add_ops = self::addOperations();
     $ops['#links'] += $add_ops['#links'];
     return $ops;
   }
@@ -364,15 +360,15 @@ class RulesContainerPluginUI extends RulesPluginUI {
   /**
    * Gets the Add-* operations for the given element.
    */
-  public function addOperations($element) {
-    $name = $element->root()->name;
+  public function addOperations() {
+    $name = $this->object->root()->name;
     $render = array(
       '#theme' => 'links__rules',
     );
     $render['#attributes']['class'][] = 'rules-operations-add';
     $render['#attributes']['class'][] = 'action-links';
     foreach (rules_fetch_data('plugin_info') as $plugin => $info) {
-      if (!empty($info['embeddable']) && $element instanceof $info['embeddable']) {
+      if (!empty($info['embeddable']) && $this->object instanceof $info['embeddable']) {
         $render['#links']['add_' . $plugin] = array(
           'title' => t('Add !name', array('!name' => $plugin)),
           'href' => RulesPluginUI::path($name, 'add/' . $plugin),
@@ -388,10 +384,10 @@ class RulesContainerPluginUI extends RulesPluginUI {
  */
 class RulesConditionContainerUI extends RulesContainerPluginUI {
 
-  public function form(&$form, &$form_state, $options = array(), $element, $iterator = NULL) {
-    parent::form($form, $form_state, $options, $element, $iterator);
+  public function form(&$form, &$form_state, $options = array(), $iterator = NULL) {
+    parent::form($form, $form_state, $options, $iterator);
     // Add the add-* operation links.
-    $form['add'] = self::addOperations($element);
+    $form['add'] = self::addOperations();
     $form['#attributes']['class'][] = 'rules-condition-container';
     $form['elements']['#heading'] = t('Conditions');
   }
@@ -402,10 +398,10 @@ class RulesConditionContainerUI extends RulesContainerPluginUI {
  */
 class RulesActionContainerUI extends RulesContainerPluginUI {
 
-  public function form(&$form, &$form_state, $options = array(), $element, $iterator = NULL) {
-    parent::form($form, $form_state, $options, $element, $iterator);
+  public function form(&$form, &$form_state, $options = array(), $iterator = NULL) {
+    parent::form($form, $form_state, $options, $iterator);
     // Add the add-* operation links.
-    $form['add'] = self::addOperations($element);
+    $form['add'] = self::addOperations();
     $form['#attributes']['class'][] = 'rules-action-container';
     $form['elements']['#heading'] = t('Actions');
   }
@@ -415,6 +411,7 @@ class RulesActionContainerUI extends RulesContainerPluginUI {
  * UI for rules arguments
  */
 class RulesArgumentUI {
+
   public function form_selector(&$form, &$form_state, $options = array(), $argument) {
     $form['input'] = array(
       '#type' => 'select',
@@ -461,42 +458,23 @@ interface RulesPluginImplInterface extends RulesPluginUIInterface {
  *
  * @see RulesPluginImplInterface
  */
-class RulesAbstractPluginDefaults extends RulesPluginUI {
+class RulesAbstractPluginDefaults extends RulesPluginUI implements RulesPluginImplInterface {
 
-  public function implementsFaces() {
-    return array('RulesPluginImplInterface');
-  }
-
-  public function execute($element) {
-    throw new RulesException($element->getPluginName() .": Execution implementation is missing.");
+  public function execute() {
+    throw new RulesException($this->object->getPluginName() .": Execution implementation is missing.");
   }
 
   /**
    * Implements RulesPluginImplInterface.
    */
-  public function validate() {}
-
-  /**
-   * Implements RulesPluginImplInterface.
-   */
-  public function process() {}
-
-  /**
-   * Implements RulesPluginImplInterface.
-   */
-  public function access($element) {
-    $info = $element->property('info');
-    if (!empty($info['access callback']) && !call_user_func($info['access callback'], $element->property('itemName'), $element->getElementName())) {
+  public function access() {
+    $info = $this->property('info');
+    if (!empty($info['access callback']) && !call_user_func($info['access callback'], $this->property('itemName'), $this->object->getElementName())) {
       return FALSE;
     }
-    return RulesPluginUI::access($element);
+    return $this->object->extender('RulesPluginUI')->access();
   }
 
-  /**
-   * Implements RulesPluginImplInterface.
-   * //TODO: allow modules to specify them in the info hook.
-   */
-  //public function operations() {}
-
+  public function validate() {}
+  public function process() {}
 }
-
