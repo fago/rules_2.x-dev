@@ -498,7 +498,7 @@ interface RulesPluginImplInterface {
 class RulesAbstractPluginDefaults extends FacesExtender implements RulesPluginImplInterface {
 
   public function execute() {
-    throw new RulesException($this->element->getPluginName() .": Execution implementation is missing.");
+    throw new RulesException($this->object->getPluginName() .": Execution implementation is missing.");
   }
 
   /**
