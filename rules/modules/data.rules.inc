@@ -284,9 +284,6 @@ function rules_data_action_info() {
  * Customize access check for data set action.
  */
 function rules_action_data_set_access(RulesAbstractPlugin $element) {
-  if (!$element->extender('RulesAbstractPluginDefaults')->access()) {
-    return FALSE;
-  }
   if (isset($element->settings['data:select']) && $wrapper = $element->call('applyDataSelector', array($element->settings['data:select']))) {
     return $wrapper instanceof EntityMetadataWrapper && $wrapper->access('edit');
   }
@@ -296,9 +293,6 @@ function rules_action_data_set_access(RulesAbstractPlugin $element) {
  * Custom access callback for data create and fetch action.
  */
 function rules_action_entity_createfetch_access(RulesAbstractPlugin $element) {
-  if (!$element->extender('RulesAbstractPluginDefaults')->access()) {
-    return FALSE;
-  }
   $op = $element->getElementName() == 'entity_create' ? 'create' : 'view';
   return entity_metadata_entity_access($op, $element->settings['type']);
 }
@@ -399,9 +393,6 @@ function rules_action_entity_create_process(RulesAbstractPlugin $element) {
  * Custom access callback for data save and delete action.
  */
 function rules_action_entity_savedelete_access(RulesAbstractPlugin $element) {
-  if (!$element->extender('RulesAbstractPluginDefaults')->access()) {
-    return FALSE;
-  }
   if ($wrapper = $element->call('applyDataSelector', array($element->settings['data:select']))) {
     $op = $element->getElementName() == 'entity_save' ? 'save' : 'delete';
     return $wrapper instanceof EntityDrupalWrapper && $wrapper->entityAccess($op);
