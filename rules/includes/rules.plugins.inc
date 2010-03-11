@@ -194,7 +194,7 @@ class Rule extends RulesActionContainer {
   }
 
   public function getIterator() {
-    $array = empty($this->conditions) ? array() : $this->conditions->children;
+    $this->conditions();
     $array = array_merge(array($this->conditions), $this->children);
     return new RulesRecursiveElementIterator($array);
   }
