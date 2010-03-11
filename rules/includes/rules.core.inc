@@ -994,6 +994,7 @@ abstract class RulesContainerPlugin extends RulesPlugin implements IteratorAggre
   protected $children = array();
 
   public function __construct($variables = array()) {
+    $this->setUp();
     if (!empty($variables)) {
       $this->info['variables'] = $variables;
     }
@@ -1143,6 +1144,7 @@ abstract class RulesContainerPlugin extends RulesPlugin implements IteratorAggre
 abstract class RulesActionContainer extends RulesContainerPlugin implements RulesActionInterface {
 
   public function __construct($variables = array(), $providesVars = array()) {
+    $this->setUp();
     $this->info['variables'] = $variables;
     $this->info['provides'] = $providesVars;
     $this->info = array_filter($this->info);
