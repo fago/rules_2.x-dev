@@ -331,7 +331,7 @@ class RulesContainerPluginUI extends RulesPluginUI {
     $form['#attributes']['class'][] = 'rules-container-plugin';
 
     // Recurse over all element childrens or use the provided iterator.
-    $iterator = new RecursiveIteratorIterator(isset($iterator) ? $iterator : $this->element, RecursiveIteratorIterator::SELF_FIRST);
+    $iterator = isset($iterator) ? $iterator : new RecursiveIteratorIterator($this->element, RecursiveIteratorIterator::SELF_FIRST);
     $root_depth = $this->element->depth();
     foreach ($iterator as $key => $child) {
       $id = self::childElementId($child);

@@ -356,10 +356,9 @@ function rules_rules_plugin_info() {
       'class' => 'Rule',
       'embeddable' => 'RulesRuleSet',
       'extenders' => array(
-        //Interfaces => array( class => className / methods => array of Methods)
-      ),
-      'overrides' => array(
-        //array of overrides each being an array ('methods' => .., 'file' => ..)
+        'RulesPluginUIInterface' => array(
+          'class' => 'RulesRuleUI',
+        ),
       ),
     ),
     'loop' => array(
@@ -367,7 +366,7 @@ function rules_rules_plugin_info() {
       'embeddable' => 'RulesActionContainer',
       'extenders' => array(
         'RulesPluginUIInterface' => array(
-          'class' => 'RulesContainerPluginUI',
+          'class' => 'RulesActionContainerUI',
         ),
       ),
     ),
@@ -389,6 +388,11 @@ function rules_rules_plugin_info() {
       'component' => TRUE,
       // Rule sets don't get embedded - we use a separate action to execute.
       'embeddable' => FALSE,
+      'extenders' => array(
+        'RulesPluginUIInterface' => array(
+          'class' => 'RulesRuleSetUI',
+        ),
+      ),
     ),
   );
 }

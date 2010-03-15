@@ -8,7 +8,7 @@
 /**
  * Rule specific UI.
  */
-class RulesRuleUI extends RulesContainerPluginUI {
+class RulesRuleUI extends RulesActionContainerUI {
 
   protected $rule, $conditions;
 
@@ -25,7 +25,8 @@ class RulesRuleUI extends RulesContainerPluginUI {
     $this->conditions->form($form['conditions'], $form_state, $options);
 
     // Add actions form.
-    parent::form($form['actions'], $form_state, $options, $this->rule->actions());
+    $iterator = new RecursiveIteratorIterator($this->rule->actions(), RecursiveIteratorIterator::SELF_FIRST);
+    parent::form($form['actions'], $form_state, $options, $iterator);
 
     // Add the settings in a separate fieldset below.
     $form['settings'] = array(
@@ -65,6 +66,14 @@ class RulesRuleUI extends RulesContainerPluginUI {
     $this->conditions->extender('RulesConditionContainerUI')->form_extract_values($form['conditions'], $form_state);
     parent::form_extract_values($form['actions'], $form_state);
   }
+
+
+  public function operations() {
+    // When rules are listed only show the edit and delete operations.
+    $ops = parent::operations();
+    $ops['#links'] = array_intersect_key($ops['#links'], array_flip(array('edit', 'delete')));
+    return $ops;
+  }
 }
 
 /**
@@ -95,3 +104,23 @@ class RulesReactionRuleUI extends RulesRuleUI {
     parent::form($form, $form_state, $options);
   }
 }
+
+/**
+ * Rule set specific UI.
+ */
+class RulesRuleSetUI extends RulesActionContainerUI {
+
+  public function form(&$form, &$form_state, $options = array(), $iterator = NULL) {
+    // Pass an iterator just iterating over the rules, thus no further child
+    // elements will be displayed.
+    parent::form($form, $form_state, $options, $this->element->getIterator());
+    // Only show the add rule link.
+    $form['add']['#links'] = array_intersect_key($form['add']['#links'], array('add_rule' => 1));
+    $form['#attributes']['class'][] = 'rules-rule-set';
+    $form['elements']['#heading'] = t('Rules');
+  }
+
+}
+
+
+
