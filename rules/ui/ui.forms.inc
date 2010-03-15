@@ -62,39 +62,25 @@ function rules_ui_add_element($form, &$form_state, $rule, $type) {
  * Edit an action or condition
  */
 function rules_ui_edit_element($form, &$form_state, $rule, $element) {
-  $info = rules_fetch_data('action_info');
-  $form['#tree'] = TRUE;
-  $form['title'] = array(
-    '#markup' => $element->getElementName(),
-    '#prefix' => '<h3>',
-    '#suffix' => '</h3>',
-  );
+  drupal_set_title($element->getElementName());
+  $data_info = rules_fetch_data('data_info');
 
-  $form['arguments'] = array(
-    '#type' => 'fieldset',
-    '#title' => t('Arguments'),
-    '#prefix' => '<div id="rules-wrapper">',
-    '#suffix' => '</div>'
+  $form['parameter'] = array(
+    '#type' => 'container',
+    '#tree' => TRUE,
+    '#id' => 'rules-parameter-wrapper'
   );
-  $data = rules_fetch_data('data_info');
-
 
   foreach($element->parameterInfo() as $name => $parameter) {
-    $form['arguments']['settings'][$name] = array(
+
+    $form['parameter'][$name] = array(
       '#type' => 'fieldset',
-      '#title' => $parameter['label'],
-      '#description' => (isset($parameter['description']) ? $parameter['description'] : ''),
+      '#title' => check_plain($parameter['label']),
+      '#description' => check_plain(isset($parameter['description']) ? $parameter['description'] : ''),
     );
     $link_id = drupal_html_id('rules-parameter-switch-' . $name);
 
-    if (isset($element->settings[$name . ':select']) && !isset($form_state['param_modes'][$name])) {
-      $form_state['param_modes'][$name] = 'selector';
-    }
-    else if (isset($element->settings[$name]) && !isset($form_state['param_modes'][$name])) {
-      $form_state['param_modes'][$name] = 'input';
-    }
-
-    $form['arguments']['settings'][$name]['link'] = array(
+    $form['parameter'][$name]['link'] = array(
       '#type' => 'link',
       '#href' => '#',
       '#title' => t('Switch'),
@@ -103,6 +89,7 @@ function rules_ui_edit_element($form, &$form_state, $rule, $element) {
       // Needed to actually output the #id.
       '#options' => array('attributes' => array('id' => $link_id)),
       '#process' => array('ajax_process_form'),
+      // Hide the link by default and unhide it by javascript.
       '#prefix' => '<div class="rules_hidden rules_parameter_switch">',
       '#suffix' => '</div>',
       '#attached' => array(
@@ -111,110 +98,102 @@ function rules_ui_edit_element($form, &$form_state, $rule, $element) {
       ),
       '#ajax' => array(
         'callback' => 'rules_ui_parameter_replace',
-        'wrapper' => 'rules-wrapper',
+        'wrapper' => 'rules-parameter-wrapper',
         'event' => 'click',
-        // button #name => #value
+        // trigger as button #name => #value
         'trigger_as' => array('param_' . $name => t('Switch')),
       ),
     );
-    $form['arguments']['settings'][$name]['switch'] = array(
+    $form['parameter'][$name]['switch'] = array(
       '#type' => 'submit',
       '#name' => 'param_' . $name,
+      '#parameter' => $name,
       '#value' => t('Switch'),
       '#submit' => array('rules_ui_parameter_replace_submit'),
       '#ajax' => array(
         'callback' => 'rules_ui_parameter_replace',
-        'wrapper' => 'rules-wrapper',
+        'wrapper' => 'rules-parameter-wrapper',
       ),
     );
-    // Init mode.
-    $form_state['param_modes'][$name] = isset($form_state['param_modes'][$name]) ? $form_state['param_modes'][$name] : 'selector';
-    // Switch mode by button.
-    if (isset($form_state['values']['param_' . $name])) {
-      $form_state['param_modes'][$name] = $form_state['param_modes'][$name] != 'selector' ? 'selector' : 'input';
-    }
-    if (isset($form_state['clicked_button']) && $form_state['clicked_button']['#name'] == 'param' . $name) {
-      $form_state['param_modes'][$name] = $form_state['param_modes'][$name] != 'selector' ? 'selector' : 'input';
+    // Init the parameter mode.
+    if (!isset($form_state['parameter_mode'][$name])) {
+      if (isset($element->settings[$name . ':select'])) {
+        $form_state['parameter_mode'][$name] = 'selector';
+      }
+      else {
+        $form_state['parameter_mode'][$name] = 'input';
+      }
     }
 
-    if ($form_state['param_modes'][$name] == 'selector') {
-      $form['arguments']['settings'][$name]['selector'] = array(
+    if ($form_state['parameter_mode'][$name] == 'selector') {
+      $form['parameter'][$name]['settings'][$name . ':select'] = array(
         '#type' => 'textfield',
         '#title' => t('Data'),
-        '#default_value' => (isset($element->settings[$name . ':select']) ? $element->settings[$name . ':select'] : ''),
+        '#default_value' => isset($element->settings[$name . ':select']) ? $element->settings[$name . ':select'] : '',
       );
     }
     else {
-      $form['arguments']['settings'][$name]['input'] = array(
+      $form['parameter'][$name]['settings'][$name] = array(
         '#type' => 'textfield',
         '#title' => t('Value'),
-        '#default_value' => (isset($element->settings[$name]) ? $element->settings[$name] : ''),
+        '#default_value' => isset($element->settings[$name]) ? $element->settings[$name] : '',
       );
     }
   }
-  $form['arguments']['submit'] = array(
+  $form['submit'] = array(
     '#type' => 'submit',
     '#value' => t('Save'),
-    '#submit' => array('rules_ui_edit_element_submit'),
-    '#validate' => array('rules_ui_edit_element_validate'),
   );
+  $form['#submit'] = array('rules_ui_edit_element_submit');
+  $form['#validate'] = array('rules_ui_edit_element_validate');
   $form_state['rules_element'] = &$element;
   return $form;
 }
 
-function rules_extract_values($form, &$form_state) {
-  $arguments = array();
-  foreach ($form_state['values']['arguments']['settings'] as $argument => $values) {
-    if (!empty($values['input']) || !empty($values['selector'])) {
-      if ($form_state['param_modes'][$argument] == 'selector') {
-        $arguments[$argument . ':select'] = $values['selector'];
-      }
-      else {
-        $arguments[$argument] = $values['input'];
-      }
+function rules_ui_edit_element_form_extract_values($form, &$form_state) {
+  $element = $form_state['rules_element'];
+
+  foreach ($form_state['values']['parameter'] as $name => $values) {
+    foreach ($values['settings'] as $key => $value) {
+      $element->settings[$key] = $value;
     }
   }
-  return $arguments;
 }
 
 /**
  * Validate the element options
-*/
+ */
 function rules_ui_edit_element_validate($form, &$form_state) {
-  $element = $form_state['rules_element'];
-  $arguments = rules_extract_values($form, $form_state);
-  if (!empty($arguments)) {
-    $element->settings = $arguments;
-  }
-  $element->form_validate($form, $form_state);
+  rules_ui_edit_element_form_extract_values($form, $form_state);
+  $form_state['rules_element']->form_validate($form, $form_state);
 }
 
 /**
  * Submit the element options
  */
 function rules_ui_edit_element_submit($form, &$form_state) {
+  // TODO: clean un-used values in settings on submit.
   $element = $form_state['rules_element'];
-  $arguments = rules_extract_values($form, $form_state);
-  if (!empty($arguments)) {
-    $element->settings = $arguments;
-  }
+  rules_ui_edit_element_form_extract_values($form, $form_state);
   $element->form_submit($form, $form_state);
   $rule_name = $element->root()->name;
   $form_state['redirect'] = RULES_UI_RULE_PATH . '/' . $rule_name;
 }
 
 /**
- * Replacing the parameter input mode without javascript
+ * Submit handler for switching the parameter input mode.
  */
 function rules_ui_parameter_replace_submit($form, &$form_state) {
+  if (isset($form_state['triggering_element'])) {
+    $name = $form_state['triggering_element']['#parameter'];
+    $form_state['parameter_mode'][$name] = $form_state['parameter_mode'][$name] == 'selector' ? 'input' : 'selector';
+  }
   $form_state['rebuild'] = TRUE;
-  $form['arguments'][] = '';
 }
 
 /**
- * Replacing the parameter input mode with javascript
+ * Ajax callback replacing the parameter form.
  */
 function rules_ui_parameter_replace($form, $form_state) {
-
-  return $form['arguments'];
+  return $form['parameter'];
 }
