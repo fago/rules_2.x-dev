@@ -335,6 +335,7 @@ function rules_rules_plugin_info() {
     'or' => array(
       'class' => 'RulesOr',
       'embeddable' => 'RulesConditionContainer',
+      'component' => TRUE,
       'extenders' => array(
         'RulesPluginUIInterface' => array(
           'class' => 'RulesConditionContainerUI',
@@ -344,6 +345,7 @@ function rules_rules_plugin_info() {
     'and' => array(
       'class' => 'RulesAnd',
       'embeddable' => 'RulesConditionContainer',
+      'component' => TRUE,
       'extenders' => array(
         'RulesPluginUIInterface' => array(
           'class' => 'RulesConditionContainerUI',
@@ -384,6 +386,7 @@ function rules_rules_plugin_info() {
     ),
     'rule set' => array(
       'class' => 'RulesRuleSet',
+      'component' => TRUE,
       // Rule sets don't get embedded - we use a separate action to execute.
       'embeddable' => FALSE,
     ),
