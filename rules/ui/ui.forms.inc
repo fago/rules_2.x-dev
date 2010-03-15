@@ -62,6 +62,7 @@ function rules_ui_add_element($form, &$form_state, $rule, $type) {
  * Edit an action or condition
  */
 function rules_ui_edit_element($form, &$form_state, $rule, $element) {
+  $info = rules_fetch_data('action_info');
   $form['#tree'] = TRUE;
   $form['title'] = array(
     '#markup' => $element->getElementName(),
@@ -77,14 +78,15 @@ function rules_ui_edit_element($form, &$form_state, $rule, $element) {
   );
   $data = rules_fetch_data('data_info');
 
+
   foreach($element->parameterInfo() as $name => $parameter) {
-      $form['arguments'][$name] = array(
+    $form['arguments']['settings'][$name] = array(
       '#type' => 'fieldset',
       '#title' => $parameter['label'],
       '#description' => (isset($parameter['description']) ? $parameter['description'] : ''),
     );
     $link_id = drupal_html_id('rules-parameter-switch-' . $name);
-    $form['arguments'][$name]['link'] = array(
+    $form['arguments']['settings'][$name]['link'] = array(
       '#type' => 'link',
       '#href' => '#',
       '#title' => t('Switch'),
@@ -107,7 +109,7 @@ function rules_ui_edit_element($form, &$form_state, $rule, $element) {
         'trigger_as' => array('param_' . $name => t('Switch')),
       ),
     );
-    $form['arguments'][$name]['switch'] = array(
+    $form['arguments']['settings'][$name]['switch'] = array(
       '#type' => 'submit',
       '#name' => 'param_' . $name,
       '#value' => t('Switch'),
@@ -126,14 +128,74 @@ function rules_ui_edit_element($form, &$form_state, $rule, $element) {
     if (isset($form_state['clicked_button']) && $form_state['clicked_button']['#name'] == 'param' . $name) {
       $form_state['param_modes'][$name] = $form_state['param_modes'][$name] != 'selector' ? 'selector' : 'input';
     }
+
     if ($form_state['param_modes'][$name] == 'selector') {
-      RulesArgumentUI::form_selector($form['arguments'][$name], $form_state, array(), $parameter);
+      $selector = (isset($element->settings[$name . ':select']) ? $element->settings[$name . ':select'] : '');
+      $form['arguments']['settings'][$name]['input'] = array(
+        '#type' => 'textfield',
+        '#title' => t('Data'),
+        '#value' => $selector ,
+      );
     }
     else {
-      RulesArgumentUI::form_input($form['arguments'][$name], $form_state, array(), $parameter);
+      $value = (isset($element->settings[$name]) ? $element->settings[$name] : '');
+      $form['arguments']['settings'][$name]['input'] = array(
+        '#type' => 'textfield',
+        '#title' => t('Value'),
+        '#value' => $value,
+      );
     }
   }
+  $form['arguments']['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Save'),
+    '#submit' => array('rules_ui_edit_element_submit'),
+    '#validate' => array('rules_ui_edit_element_validate'),
+  );
+  $form_state['rules_element'] = &$element;
   return $form;
+}
+
+function rules_extract_values($form, &$form_state) {
+  $arguments = array();
+  foreach ($form_state['values']['arguments']['settings'] as $argument => $values) {
+    if (!empty($values['input'])) {
+      if ($form_state['param_modes'][$argument] == 'selector') {
+        $arguments[$argument . ':select'] = $values['input'];
+      }
+      else {
+        $arguments[$argument] = $values['input'];
+      }
+    }
+  }
+  return $arguments;
+}
+
+/**
+ * Validate the element options
+ */
+function rules_ui_edit_element_validate($form, &$form_state) {
+  $element = $form_state['rules_element'];
+  $arguments = rules_extract_values($form, $form_state);
+  if (!empty($arguments)) {
+    $element->settings = $arguments;
+  }
+  $element->form_validate($form, $form_state);
+}
+
+/**
+ * Submit the element options
+ */
+function rules_ui_edit_element_submit($form, &$form_state) {
+  $element = $form_state['rules_element'];
+  $arguments = rules_extract_values($form, $form_state);
+  if (!empty($arguments)) {
+    $element->settings = $arguments;
+  }
+  $element->form_submit($form, $form_state);
+  $rule_name = '';
+  $form_state['redirect'] = RULES_UI_RULE_PATH . '/' . $rule_name;
+  $form_state['rebuild'] = TRUE;
 }
 
 /**
