@@ -234,10 +234,12 @@ class RulesPluginUI extends FacesExtender implements RulesPluginUIInterface {
    * Clears the current element map.
    */
   protected static function clearElementMap(&$map) {
-    foreach ($map as $element) {
-      unset($element->childElementId);
+    if (isset($map)) {
+      foreach ($map as $element) {
+        unset($element->childElementId);
+      }
+      unset($map);
     }
-    unset($map);
   }
 
   /**
