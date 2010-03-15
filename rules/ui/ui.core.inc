@@ -259,22 +259,26 @@ class RulesPluginUI extends FacesExtender implements RulesPluginUIInterface {
     foreach ($configs as $name => $config) {
       $path = RULES_UI_RULE_PATH . '/' . $name;
       $row = array();
-      $row[] = l($config->label, $path);
+      $row[] = l($config->label(), $path);
       // Add events if the configs are assigned to events.
-      $events = array();
       if ($config instanceof RulesTriggerableInterface) {
-        $is_triggerable = TRUE;
+        $events = array();
         foreach ($config->events() as $event_name) {
           $events[] = $event_info[$event_name]['label'];
         }
+        $row[] = implode(", ", $events);
       }
-      $row[] = implode(", ", $events);
+
       $row[] = l(t('edit'), $path, array('query' => drupal_get_destination()));
       $row[] = l(t('clone'), $path . '/clone', array('query' => drupal_get_destination()));
       $row[] = l(t('delete'), $path . '/delete', array('query' => drupal_get_destination()));
       $rows[] = $row;
     }
-    $header = array(t('Label'), array('data' => !empty($is_triggerable) ? t('Event') : ''), array('data' => t('Operations'), 'colspan' => '3'));
+    $header = array(t('Label'), array('data' => t('Event')), array('data' => t('Operations'), 'colspan' => '3'));
+    if (!isset($events)) {
+      // Remove the event heading as there is no such column.
+      unset($header[1]);
+    }
 
     $table = array(
       '#theme' => 'table',

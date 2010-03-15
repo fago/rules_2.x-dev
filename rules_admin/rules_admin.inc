@@ -48,15 +48,14 @@ function rules_admin_reaction_overview($form, &$form_state) {
   $conditions = array_filter(array('event' => $event, 'plugin' => 'reaction rule')) + array('active' => FALSE);
   $form['inactive']['table'] = RulesPluginUI::overviewTable($conditions, t('There are no matching inactive reaction rules.'));
 
-  $form_state['#submit'] = TRUE;
-
+  $form['#submit'][] = 'rules_admin_form_rebuild_submit';
   return $form;
 }
 
 /**
  * Submit callback for the reaction rules overview form.
  */
-function rules_admin_reaction_overview_submit($form, &$form_state) {
+function rules_admin_form_rebuild_submit($form, &$form_state) {
   $form_state['rebuild'] = TRUE;
 }
 
@@ -64,7 +63,26 @@ function rules_admin_reaction_overview_submit($form, &$form_state) {
  * Rules overview
  */
 function rules_admin_components_overview($form, &$form_state) {
-  drupal_set_message("Rules admin set overview");
+  $form['filter'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Filter'),
+    '#collapsible' => TRUE,
+    '#collapsed' => isset($form_state['values']),
+  );
+  $form['filter']['category'] = array(
+    '#type' => 'select',
+    '#title' => t('Filter by category'),
+    '#options' => array(0 => '<All>'),
+    '#default_value' => isset($form_state['values']['category']) ? $form_state['values']['category'] : 0,
+  );
+  $form['submit'] = array('#type' => 'submit', '#value' => t('Filter'));
+  $category = !empty($form_state['values']['category']) ? $form_state['values']['category'] : FALSE;
+
+  // Get the plugin name usable as component.
+  $plugins = array_keys(rules_filter_array(rules_fetch_data('plugin_info'), 'component', TRUE));
+  $conditions = array('plugin' => $plugins);
+  $form['table'] = RulesPluginUI::overviewTable($conditions, t('There are no rule components.'));
+  $form['#submit'][] = 'rules_admin_form_rebuild_submit';
   return $form;
 }
 

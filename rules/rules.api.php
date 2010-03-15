@@ -347,6 +347,9 @@ function hook_rules_data_info() {
  *   - embeddable: A container class in which elements of those plugin may be
  *     embedded or FALSE to disallow embedding. Common classes that are used
  *     here are RulesConditionContainer and RulesActionContainer.
+ *   - component: If set to TRUE, the rules admin UI will list elements of those
+ *     plugin in the components UI and allows the creation of new components
+ *     based upon this plugin. Optional.
  *   - extenders: This allows one to specify faces extenders, which may be used
  *     to dynamically implement interfaces. Optional. All extenders specified
  *     here are setup automatically by rules once the object is created. To
@@ -379,10 +382,12 @@ function hook_rules_plugin_info() {
     'or' => array(
       'class' => 'RulesOr',
       'embeddable' => 'RulesConditionContainer',
+      'component' => TRUE,
     ),
     'and' => array(
-      'embeddable' => 'RulesConditionContainer',
       'class' => 'RulesAnd',
+      'embeddable' => 'RulesConditionContainer',
+      'component' => TRUE,
     ),
     'rule' => array(
       'class' => 'Rule',
