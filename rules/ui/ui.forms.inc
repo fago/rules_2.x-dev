@@ -86,6 +86,14 @@ function rules_ui_edit_element($form, &$form_state, $rule, $element) {
       '#description' => (isset($parameter['description']) ? $parameter['description'] : ''),
     );
     $link_id = drupal_html_id('rules-parameter-switch-' . $name);
+
+    if (isset($element->settings[$name . ':select']) && !isset($form_state['param_modes'][$name])) {
+      $form_state['param_modes'][$name] = 'selector';
+    }
+    else if (isset($element->settings[$name]) && !isset($form_state['param_modes'][$name])) {
+      $form_state['param_modes'][$name] = 'input';
+    }
+
     $form['arguments']['settings'][$name]['link'] = array(
       '#type' => 'link',
       '#href' => '#',
@@ -130,19 +138,17 @@ function rules_ui_edit_element($form, &$form_state, $rule, $element) {
     }
 
     if ($form_state['param_modes'][$name] == 'selector') {
-      $selector = (isset($element->settings[$name . ':select']) ? $element->settings[$name . ':select'] : '');
-      $form['arguments']['settings'][$name]['input'] = array(
+      $form['arguments']['settings'][$name]['selector'] = array(
         '#type' => 'textfield',
         '#title' => t('Data'),
-        '#value' => $selector ,
+        '#default_value' => (isset($element->settings[$name . ':select']) ? $element->settings[$name . ':select'] : ''),
       );
     }
     else {
-      $value = (isset($element->settings[$name]) ? $element->settings[$name] : '');
       $form['arguments']['settings'][$name]['input'] = array(
         '#type' => 'textfield',
         '#title' => t('Value'),
-        '#value' => $value,
+        '#default_value' => (isset($element->settings[$name]) ? $element->settings[$name] : ''),
       );
     }
   }
@@ -159,9 +165,9 @@ function rules_ui_edit_element($form, &$form_state, $rule, $element) {
 function rules_extract_values($form, &$form_state) {
   $arguments = array();
   foreach ($form_state['values']['arguments']['settings'] as $argument => $values) {
-    if (!empty($values['input'])) {
+    if (!empty($values['input']) || !empty($values['selector'])) {
       if ($form_state['param_modes'][$argument] == 'selector') {
-        $arguments[$argument . ':select'] = $values['input'];
+        $arguments[$argument . ':select'] = $values['selector'];
       }
       else {
         $arguments[$argument] = $values['input'];
@@ -173,7 +179,7 @@ function rules_extract_values($form, &$form_state) {
 
 /**
  * Validate the element options
- */
+*/
 function rules_ui_edit_element_validate($form, &$form_state) {
   $element = $form_state['rules_element'];
   $arguments = rules_extract_values($form, $form_state);
@@ -193,9 +199,8 @@ function rules_ui_edit_element_submit($form, &$form_state) {
     $element->settings = $arguments;
   }
   $element->form_submit($form, $form_state);
-  $rule_name = '';
+  $rule_name = $element->root()->name;
   $form_state['redirect'] = RULES_UI_RULE_PATH . '/' . $rule_name;
-  $form_state['rebuild'] = TRUE;
 }
 
 /**
