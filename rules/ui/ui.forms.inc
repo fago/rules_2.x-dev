@@ -100,8 +100,11 @@ function rules_ui_edit_element($form, &$form_state, $rule, $element) {
         'callback' => 'rules_ui_parameter_replace',
         'wrapper' => 'rules-parameter-wrapper',
         'event' => 'click',
-        // trigger as button #name => #value
-        'trigger_as' => array('param_' . $name => t('Switch')),
+        // Trigger as the Switch button.
+        'trigger_as' => array(
+          'name' => 'param_' . $name,
+          'value' => t('Switch')
+        ),
       ),
     );
     $form['parameter'][$name]['switch'] = array(
