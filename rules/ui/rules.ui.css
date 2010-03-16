@@ -13,8 +13,9 @@
 	margin: 0px;
 }
 
-div.rules-container-plugin .rules-operations-add {
-  margin-bottom: 2em;
+div ul.rules-operations-add {
+	margin: 0px;
+	margin-bottom: 2em;
 }
 
 .rules_hidden {

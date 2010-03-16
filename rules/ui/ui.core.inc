@@ -24,6 +24,7 @@ interface RulesPluginUIInterface {
    *    - 'show settings': Whether to include the 'settings' fieldset for
    *      editing configuration settings like the label or categories. Defaults
    *      to FALSE.
+   *    - 'button': Whether a submit button should be added. Defaults to FALSE.
    *    - 'restrict plugins: May be used to restrict the list of rules plugins
    *      that may be added to this configuration. For that set an array of
    *      valid plugins. Note that conditions and actions are always valid, so
@@ -179,10 +180,18 @@ class RulesPluginUI extends FacesExtender implements RulesPluginUIInterface {
         );
       }
     }
-    $form['submit'] = array(
-      '#type' => 'submit',
-      '#value' => t('Save'),
-    );
+    // Add settings form, if specified.
+    if (!empty($options['show settings'])) {
+      $this->settingsForm($form, $form_state);
+    }
+    // Add submit button, if specified.
+    if (!empty($options['button'])) {
+      $form['submit'] = array(
+        '#type' => 'submit',
+        '#value' => t('Save'),
+        '#weight' => 10,
+      );
+    }
   }
 
   /**
@@ -201,6 +210,9 @@ class RulesPluginUI extends FacesExtender implements RulesPluginUIInterface {
       //TODO: Add visual feedback which element had troubles.
       form_set_error('', $e->getMessage());
     }
+    if (!empty($form['settings'])) {
+      $this->settingsFormValidate($form, $form_state);
+    }
   }
 
   /**
@@ -213,12 +225,18 @@ class RulesPluginUI extends FacesExtender implements RulesPluginUIInterface {
         $this->element->settings[$key] = $value;
       }
     }
+    if (!empty($form['settings'])) {
+      $this->settingsFormExtractValues($form, $form_state);
+    }
   }
 
   /**
    * Implements RulesPluginUIInterface.
    */
   public function form_submit(&$form, &$form_state) {
+    if (!empty($form['settings'])) {
+      $this->settingsFormSubmit($form, $form_state);
+    }
     $this->element->save();
     // Clear the element id index map, so the map is regenerated in case of a
     // form rebuild. That way the map is indentical to the map that would be
@@ -226,6 +244,47 @@ class RulesPluginUI extends FacesExtender implements RulesPluginUIInterface {
     self::clearElementMap($this->element->root()->map);
     drupal_set_message(t('Your changes have been saved.'));
   }
+
+  /**
+   * Adds the configuration settings form (label, tags, description, ..).
+   */
+  public function settingsForm(&$form, &$form_state) {
+    // Add the settings in a separate fieldset below.
+    $form['settings'] = array(
+      '#type' => 'fieldset',
+      '#title' => t('Settings'),
+      '#collapsible' => TRUE,
+      '#collapsed' => TRUE,
+      '#weight' => 5,
+    );
+    $form['settings']['label'] = array(
+      '#type' => 'textfield',
+      '#title' => 'Label',
+      '#default_value' => $this->element->label(),
+      '#required' => TRUE,
+    );
+    $form['settings']['weight'] = array(
+      '#type' => 'weight',
+      '#title' => t('Weight'),
+      '#default_value' => $this->element->weight,
+      '#delta' => 10,
+    );
+    // TODO: Attach field form thus description and tags.
+  }
+
+  public function settingsFormExtractValues($form, &$form_state) {
+    $this->element->label = $form_state['values']['label'];
+    $this->element->weight = $form_state['values']['weight'];
+  }
+
+  public function settingsFormValidate($form, &$form_state) {
+
+  }
+
+  public function settingsFormSubmit($form, &$form_state) {
+
+  }
+
 
   /**
    * Implements RulesPluginUIInterface.
@@ -255,10 +314,12 @@ class RulesPluginUI extends FacesExtender implements RulesPluginUIInterface {
     $render['#links']['edit'] = array(
       'title' => t('Edit'),
       'href' => RulesPluginUI::path($name, 'edit', $element_id),
+      'query' => drupal_get_destination(),
     );
     $render['#links']['delete'] = array(
       'title' => t('Delete'),
       'href' => RulesPluginUI::path($name, 'delete', $element_id),
+      'query' => drupal_get_destination(),
     );
     return $render;
   }
@@ -412,9 +473,13 @@ class RulesContainerPluginUI extends RulesPluginUI {
    * Generates a table for editing the contained elements.
    */
   public function form(&$form, &$form_state, $options = array(), $iterator = NULL) {
-    $form['#type'] = 'container';
-    $form['#tree'] = TRUE;
-    $form['#attributes']['class'][] = 'rules-container-plugin';
+    $form['elements'] = array(
+      '#tree' => TRUE,
+      '#theme' => 'rules_elements',
+      '#empty' => t('None'),
+      '#heading' => t('Elements')
+    );
+    $form['elements']['#attributes']['class'][] = 'rules-container-plugin';
 
     // Recurse over all element childrens or use the provided iterator.
     $iterator = isset($iterator) ? $iterator : new RecursiveIteratorIterator($this->element, RecursiveIteratorIterator::SELF_FIRST);
@@ -445,9 +510,19 @@ class RulesContainerPluginUI extends RulesPluginUI {
       );
       $form['elements'][$id]['operations'] = $child->operations();
     }
-    $form['elements']['#options'] = $options;
-    $form['elements']['#theme'] = 'rules_elements';
-    $form['elements'] += array('#empty' => t('None'), '#heading' => t('Elements'));
+
+    // Add settings form, if specified.
+    if (!empty($options['show settings'])) {
+      $this->settingsForm($form, $form_state);
+    }
+    // Add submit button, if specified.
+    if (!empty($options['button'])) {
+      $form['submit'] = array(
+        '#type' => 'submit',
+        '#value' => t('Save changes'),
+        '#weight' => 10,
+      );
+    }
   }
 
   /**
@@ -469,6 +544,9 @@ class RulesContainerPluginUI extends RulesPluginUI {
         $child->setParent($parent ? $parent : $this->element);
       }
       $this->element->sortChildren(TRUE);
+    }
+    if (!empty($form['settings'])) {
+      $this->settingsFormExtractValues($form, $form_state);
     }
   }
 
@@ -495,6 +573,7 @@ class RulesContainerPluginUI extends RulesPluginUI {
         $render['#links']['add_' . $plugin] = array(
           'title' => t('Add !name', array('!name' => $plugin)),
           'href' => RulesPluginUI::path($name, 'add/' . $plugin, $element_id),
+          'query' => drupal_get_destination(),
         );
       }
     }
@@ -511,7 +590,7 @@ class RulesConditionContainerUI extends RulesContainerPluginUI {
     parent::form($form, $form_state, $options, $iterator);
     // Add the add-* operation links.
     $form['add'] = self::addOperations();
-    $form['#attributes']['class'][] = 'rules-condition-container';
+    $form['elements']['#attributes']['class'][] = 'rules-condition-container';
     $form['elements']['#heading'] = t('Conditions');
   }
 }
@@ -525,7 +604,7 @@ class RulesActionContainerUI extends RulesContainerPluginUI {
     parent::form($form, $form_state, $options, $iterator);
     // Add the add-* operation links.
     $form['add'] = self::addOperations();
-    $form['#attributes']['class'][] = 'rules-action-container';
+    $form['elements']['#attributes']['class'][] = 'rules-action-container';
     $form['elements']['#heading'] = t('Actions');
   }
 }

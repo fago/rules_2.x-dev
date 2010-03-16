@@ -11,7 +11,7 @@
 function rules_ui_form_edit_rules_config($form, &$form_state, $rules_config) {
   $form_state += array('rules_config' => $rules_config);
   // Add the rule configuration's form.
-  $rules_config->form($form, $form_state);
+  $rules_config->form($form, $form_state, array('show settings' => TRUE, 'button' => TRUE));
   return $form;
 }
 
@@ -59,7 +59,7 @@ function rules_ui_add_element($form, &$form_state, $rule, $type) {
  */
 function rules_ui_edit_element($form, &$form_state, $rule, $element) {
   $form_state += array('rules_element' => $element);
-  $form_state['rules_element']->form($form, $form_state);
+  $form_state['rules_element']->form($form, $form_state, array('button' => TRUE));
   return $form;
 }
 
