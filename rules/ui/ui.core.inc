@@ -94,13 +94,94 @@ class RulesPluginUI extends FacesExtender implements RulesPluginUIInterface {
 
   /**
    * Implements RulesPluginUIInterface.
+   * Generates the element edit form.
    */
-  //TODO: Show element edit form.
   public function form(&$form, &$form_state, $options = array()) {
+    $data_info = rules_fetch_data('data_info');
 
-    $form['#theme'] = 'rules_element_view';
-    $form['head'] = array(
-      '#markup' => check_plain($this->element->label()),
+    $form['parameter'] = array(
+      '#type' => 'container',
+      '#tree' => TRUE,
+      '#id' => 'rules-parameter-wrapper'
+    );
+
+    foreach($this->element->parameterInfo() as $name => $parameter) {
+
+      $form['parameter'][$name] = array(
+        '#type' => 'fieldset',
+        '#title' => check_plain($parameter['label']),
+        '#description' => check_plain(isset($parameter['description']) ? $parameter['description'] : ''),
+      );
+      $link_id = drupal_html_id('rules-parameter-switch-' . $name);
+
+      $form['parameter'][$name]['link'] = array(
+        '#type' => 'link',
+        '#href' => '#',
+        '#title' => t('Switch'),
+        // #id is used for ajax js code generation.
+        '#id' => $link_id,
+        // Needed to actually output the #id.
+        '#options' => array('attributes' => array('id' => $link_id)),
+        '#process' => array('ajax_process_form'),
+        // Hide the link by default and unhide it by javascript.
+        '#prefix' => '<div class="rules_hidden rules_parameter_switch">',
+        '#suffix' => '</div>',
+        '#attached' => array(
+          'js' => array(drupal_get_path('module', 'rules') . '/ui/rules.ui.js'),
+          'css' => array(drupal_get_path('module', 'rules') . '/ui/rules.ui.css'),
+        ),
+        '#ajax' => array(
+          'callback' => 'rules_ui_parameter_replace',
+          'wrapper' => 'rules-parameter-wrapper',
+          'event' => 'click',
+          // Trigger as the Switch button.
+          'trigger_as' => array(
+            'name' => 'param_' . $name,
+            'value' => t('Switch')
+          ),
+        ),
+      );
+      $form['parameter'][$name]['switch'] = array(
+        '#type' => 'submit',
+        '#name' => 'param_' . $name,
+        '#parameter' => $name,
+        '#value' => t('Switch'),
+        '#submit' => array('rules_ui_parameter_replace_submit'),
+        '#ajax' => array(
+          'callback' => 'rules_ui_parameter_replace',
+          'wrapper' => 'rules-parameter-wrapper',
+        ),
+        // Do not validate!
+        '#limit_validation_errors' => array(),
+      );
+      // Init the parameter mode.
+      if (!isset($form_state['parameter_mode'][$name])) {
+        if (isset($this->element->settings[$name . ':select'])) {
+          $form_state['parameter_mode'][$name] = 'selector';
+        }
+        else {
+          $form_state['parameter_mode'][$name] = 'input';
+        }
+      }
+
+      if ($form_state['parameter_mode'][$name] == 'selector') {
+        $form['parameter'][$name]['settings'][$name . ':select'] = array(
+          '#type' => 'textfield',
+          '#title' => t('Data'),
+          '#default_value' => isset($this->element->settings[$name . ':select']) ? $this->element->settings[$name . ':select'] : '',
+        );
+      }
+      else {
+        $form['parameter'][$name]['settings'][$name] = array(
+          '#type' => 'textfield',
+          '#title' => t('Value'),
+          '#default_value' => isset($this->element->settings[$name]) ? $this->element->settings[$name] : '',
+        );
+      }
+    }
+    $form['submit'] = array(
+      '#type' => 'submit',
+      '#value' => t('Save'),
     );
   }
 
@@ -126,7 +207,12 @@ class RulesPluginUI extends FacesExtender implements RulesPluginUIInterface {
    * Applies the values of the form to the element.
    */
   function form_extract_values($form, $form_state) {
-
+    $this->element->settings = array();
+    foreach ($form_state['values']['parameter'] as $name => $values) {
+      foreach ($values['settings'] as $key => $value) {
+        $this->element->settings[$key] = $value;
+      }
+    }
   }
 
   /**

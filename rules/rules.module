@@ -688,7 +688,8 @@ function rules_menu() {
     'file' => 'ui/ui.forms.inc',
   );
   $items[RULES_UI_RULE_PATH . '/%rules_config/edit/%rules_element'] = array(
-    'title' => 'Editing element',
+    'title callback' => 'rules_get_title',
+    'title arguments' => array('Editing @plugin "@label"', 7),
     'page callback' => 'drupal_get_form',
     'page arguments' => array('rules_ui_edit_element', 5, 7),
     'access arguments' => array('administer rules'),
@@ -705,4 +706,11 @@ function rules_menu() {
 function rules_element_load($element_id, $config_name) {
   $config = rules_config_load($config_name);
   return RulesPluginUI::getChildElementById($config, $element_id);
+}
+
+/**
+ * Callback for getting the title as configured.
+ */
+function rules_get_title($text, $element) {
+  return t($text, array('@label' => $element->label(), '@plugin' => $element->plugin()));
 }

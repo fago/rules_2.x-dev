@@ -53,7 +53,6 @@ class RulesRuleUI extends RulesActionContainerUI {
       '#type' => 'submit',
       '#value' => t('Save Changes'),
     );
-    $form_state['rules_config'][$this->rule->name] = $this->rule;
   }
 
   /**
