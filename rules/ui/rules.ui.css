@@ -19,5 +19,13 @@ div ul.rules-operations-add {
 }
 
 .rules_hidden {
-  Display:none;
+  Display: none;
+}
+
+.rules-debug-log {
+	background-color: #EEEEEE;
+	border: 1px solid #CCCCCC;
+	font-color: #333333;
+	padding: 5px;
+	margin: 2em;
 }
