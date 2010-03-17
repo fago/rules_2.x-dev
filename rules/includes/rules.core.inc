@@ -754,7 +754,7 @@ abstract class RulesAbstractPlugin extends RulesPlugin {
 
   public function access() {
     $this->processSettings();
-    $this->loadBasicInclude($this->info['module']);
+    $this->loadBasicInclude();
     if (!empty($this->info['access callback']) && !call_user_func($this->info['access callback'], $this->itemName, $this->getElementName())) {
       return FALSE;
     }
@@ -910,8 +910,9 @@ abstract class RulesAbstractPlugin extends RulesPlugin {
    * Makes sure the providing modules' .rules.inc file is included as diverse
    * callbacks may reside in that file.
    */
-  protected static function loadBasicInclude($module) {
+  protected function loadBasicInclude() {
     static $included = array();
+    $module = $this->info['module'];
 
     if (!isset($included[$module])) {
       module_load_include('inc', $module, $module . '.rules');
