@@ -24,28 +24,35 @@ function rules_data_data_info() {
   $return = array(
     'text' => array(
       'label' => t('text'),
+      'ui class' => 'RulesDataUIText',
     ),
    'decimal' => array(
       'label' => t('decimal number'),
       'parent' => 'text',
+      'ui class' => 'RulesDataUIText',
     ),
    'integer' => array(
       'label' => t('integer'),
       'class' => 'RulesIntegerWrapper',
       'parent' => 'decimal',
+      'ui class' => 'RulesDataUIText',
     ),
    'date' => array(
       'label' => t('date'),
+      'ui class' => 'RulesDataUIText',
     ),
    'duration' => array(
       'label' => t('duration'),
+      'ui class' => 'RulesDataUIText',
     ),
    'boolean' => array(
       'label' => t('truth value'),
+      'ui class' => 'RulesDataUIBoolean',
     ),
    'uri' => array(
       'label' => t('URI'),
       'parent' => 'text',
+      'ui class' => 'RulesDataUIText',
     ),
    'list' => array(
       'label' => t('list'),

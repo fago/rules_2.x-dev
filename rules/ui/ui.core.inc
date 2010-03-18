@@ -107,6 +107,8 @@ class RulesPluginUI extends FacesExtender implements RulesPluginUIInterface {
     );
 
     foreach($this->element->parameterInfo() as $name => $parameter) {
+      $data_info[$parameter['type']] += array('ui class' => 'RulesDataUI');
+      $class = $data_info[$parameter['type']]['ui class'];
 
       $form['parameter'][$name] = array(
         '#type' => 'fieldset',
@@ -115,38 +117,57 @@ class RulesPluginUI extends FacesExtender implements RulesPluginUIInterface {
       );
 
       // Init the parameter input mode.
-      if (!isset($form_state['parameter_mode'][$name])) {
-        if (isset($this->element->settings[$name . ':select'])) {
-          $form_state['parameter_mode'][$name] = 'selector';
-        }
-        else {
-          $form_state['parameter_mode'][$name] = 'input';
-        }
-      }
+      $form_state['parameter_mode'][$name] = !isset($form_state['parameter_mode'][$name]) ? NULL : $form_state['parameter_mode'][$name];
+      $form['parameter'][$name] += $this->getParameterForm($this->element->settings, $name, $class, $form_state['parameter_mode'][$name]);
+    }
 
-      // Add the parameter form.
-      if ($form_state['parameter_mode'][$name] == 'selector') {
-        $form['parameter'][$name]['settings'][$name . ':select'] = array(
-          '#type' => 'textfield',
-          '#title' => t('Data selector'),
-          '#default_value' => isset($this->element->settings[$name . ':select']) ? $this->element->settings[$name . ':select'] : '',
-        );
+    // Add settings form, if specified.
+    if (!empty($options['show settings'])) {
+      $this->settingsForm($form, $form_state);
+    }
+    // Add submit button, if specified.
+    if (!empty($options['button'])) {
+      $form['submit'] = array(
+        '#type' => 'submit',
+        '#value' => t('Save'),
+        '#weight' => 10,
+      );
+    }
+  }
+
+  /**
+   * Actually generates the parameter form for the given data type.
+   */
+  protected function getParameterForm($settings, $name, $class, &$mode) {
+    // Init the mode.
+    if (!isset($mode)) {
+      if (isset($settings[$name . ':select'])) {
+        $mode = 'selector';
+      }
+      elseif (isset($settings[$name]) && $class instanceof RulesDataDirectInputForm) {
+        $mode = 'input';
       }
       else {
-        $form['parameter'][$name]['settings'][$name] = array(
-          '#type' => 'textfield',
-          '#title' => t('Value'),
-          '#default_value' => isset($this->element->settings[$name]) ? $this->element->settings[$name] : '',
-        );
+        $mode = call_user_func(array($class, 'getDefaultMode'));
       }
+    }
+    $supports_input_mode = in_array('RulesDataDirectInputForm', class_implements($class));
 
-      // Add a link for switching the input mode when JS is enabled and a button
-      // to switch it without javascript.
+    // Add the parameter form.
+    if ($mode == 'input' && $supports_input_mode) {
+      $form['settings'] = call_user_func(array($class, 'inputForm'), $name, $settings);
+    }
+    else {
+      $form['settings'] = call_user_func(array($class, 'selectionForm'), $name, $settings);
+    }
 
-      $value = $form_state['parameter_mode'][$name] == 'selector' ? t('Switch to the direct input mode') : t('Switch to data selection');
+    // Add a link for switching the input mode when JS is enabled and a button
+    // to switch it without javascript, in case switching is possible.
+    if ($supports_input_mode) {
+      $value = $mode == 'selector' ? t('Switch to the direct input mode') : t('Switch to data selection');
       $link_id = drupal_html_id('rules-parameter-switch-' . $name);
 
-      $form['parameter'][$name]['link'] = array(
+      $form['link'] = array(
         '#type' => 'link',
         '#href' => '#',
         '#title' => $value,
@@ -173,7 +194,7 @@ class RulesPluginUI extends FacesExtender implements RulesPluginUIInterface {
           ),
         ),
       );
-      $form['parameter'][$name]['switch'] = array(
+      $form['switch'] = array(
         '#type' => 'submit',
         '#name' => 'param_' . $name,
         '#parameter' => $name,
@@ -187,19 +208,7 @@ class RulesPluginUI extends FacesExtender implements RulesPluginUIInterface {
         '#limit_validation_errors' => array(),
       );
     }
-
-    // Add settings form, if specified.
-    if (!empty($options['show settings'])) {
-      $this->settingsForm($form, $form_state);
-    }
-    // Add submit button, if specified.
-    if (!empty($options['button'])) {
-      $form['submit'] = array(
-        '#type' => 'submit',
-        '#value' => t('Save'),
-        '#weight' => 10,
-      );
-    }
+    return $form;
   }
 
   /**

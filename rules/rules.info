@@ -19,6 +19,7 @@ files[] = modules/system.rules.inc
 files[] = modules/taxonomy.rules.inc
 files[] = modules/user.rules.inc
 files[] = ui/ui.core.inc
+files[] = ui/ui.data.inc
 files[] = ui/ui.forms.inc
 files[] = ui/ui.plugins.inc
 files[] = ui/ui.theme.inc
