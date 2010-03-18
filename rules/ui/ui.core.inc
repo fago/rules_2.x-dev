@@ -113,12 +113,43 @@ class RulesPluginUI extends FacesExtender implements RulesPluginUIInterface {
         '#title' => check_plain($parameter['label']),
         '#description' => check_plain(isset($parameter['description']) ? $parameter['description'] : ''),
       );
+
+      // Init the parameter input mode.
+      if (!isset($form_state['parameter_mode'][$name])) {
+        if (isset($this->element->settings[$name . ':select'])) {
+          $form_state['parameter_mode'][$name] = 'selector';
+        }
+        else {
+          $form_state['parameter_mode'][$name] = 'input';
+        }
+      }
+
+      // Add the parameter form.
+      if ($form_state['parameter_mode'][$name] == 'selector') {
+        $form['parameter'][$name]['settings'][$name . ':select'] = array(
+          '#type' => 'textfield',
+          '#title' => t('Data selector'),
+          '#default_value' => isset($this->element->settings[$name . ':select']) ? $this->element->settings[$name . ':select'] : '',
+        );
+      }
+      else {
+        $form['parameter'][$name]['settings'][$name] = array(
+          '#type' => 'textfield',
+          '#title' => t('Value'),
+          '#default_value' => isset($this->element->settings[$name]) ? $this->element->settings[$name] : '',
+        );
+      }
+
+      // Add a link for switching the input mode when JS is enabled and a button
+      // to switch it without javascript.
+
+      $value = $form_state['parameter_mode'][$name] == 'selector' ? t('Switch to the direct input mode') : t('Switch to data selection');
       $link_id = drupal_html_id('rules-parameter-switch-' . $name);
 
       $form['parameter'][$name]['link'] = array(
         '#type' => 'link',
         '#href' => '#',
-        '#title' => t('Switch'),
+        '#title' => $value,
         // #id is used for ajax js code generation.
         '#id' => $link_id,
         // Needed to actually output the #id.
@@ -138,7 +169,7 @@ class RulesPluginUI extends FacesExtender implements RulesPluginUIInterface {
           // Trigger as the Switch button.
           'trigger_as' => array(
             'name' => 'param_' . $name,
-            'value' => t('Switch')
+            'value' => t('Switch'),
           ),
         ),
       );
@@ -155,31 +186,8 @@ class RulesPluginUI extends FacesExtender implements RulesPluginUIInterface {
         // Do not validate!
         '#limit_validation_errors' => array(),
       );
-      // Init the parameter mode.
-      if (!isset($form_state['parameter_mode'][$name])) {
-        if (isset($this->element->settings[$name . ':select'])) {
-          $form_state['parameter_mode'][$name] = 'selector';
-        }
-        else {
-          $form_state['parameter_mode'][$name] = 'input';
-        }
-      }
-
-      if ($form_state['parameter_mode'][$name] == 'selector') {
-        $form['parameter'][$name]['settings'][$name . ':select'] = array(
-          '#type' => 'textfield',
-          '#title' => t('Data'),
-          '#default_value' => isset($this->element->settings[$name . ':select']) ? $this->element->settings[$name . ':select'] : '',
-        );
-      }
-      else {
-        $form['parameter'][$name]['settings'][$name] = array(
-          '#type' => 'textfield',
-          '#title' => t('Value'),
-          '#default_value' => isset($this->element->settings[$name]) ? $this->element->settings[$name] : '',
-        );
-      }
     }
+
     // Add settings form, if specified.
     if (!empty($options['show settings'])) {
       $this->settingsForm($form, $form_state);
