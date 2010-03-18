@@ -93,3 +93,28 @@ function rules_admin_settings($form, &$form_state) {
   drupal_set_message("Rules admin settings");
   return $form;
 }
+
+/**
+ * Add reaction rules form
+ */
+function rules_admin_add_reaction_rule($form, &$form_state) {
+  $rules_config = rules_reaction_rule();
+  $rules_config->form($form, $form_state, array('show settings' => true, 'button' => TRUE));
+
+  $form['settings']['#collapsible'] = FALSE;
+  unset($form['elements']);
+  unset($form['conditions']);
+  unset($form['add']);
+  $form['submit']['#submit'] = array('rule_admin_add_reaction_rule_submit');
+
+  $form_state += array('rules_config' => $rules_config);
+
+  return $form;
+}
+
+function rule_admin_add_reaction_rule_submit($form, &$form_state) {
+  $rules_config = $form_state['rules_config'];
+  $rules_config->form_submit($form, $form_state);
+  //TODO: redirect to the 'select events' form
+  $form_state['redirect'] = RULES_UI_RULE_PATH . '/' . $rules_config->name;
+}

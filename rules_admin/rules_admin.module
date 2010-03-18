@@ -30,7 +30,7 @@ function rules_admin_menu() {
   $items[RULES_ADMIN_REACION_PATH . '/add'] = array(
     'title' => 'Add a new reaction rule',
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('rules_admin_reaction_overview'),
+    'page arguments' => array('rules_admin_add_reaction_rule'),
     'access arguments' => array('administer rules'),
     'type' => MENU_LOCAL_ACTION,
     'file' => 'rules_admin.inc',

@@ -682,6 +682,13 @@ abstract class RulesPlugin extends RulesExtendable {
     }
     return isset($this->info['label']) ? $this->info['label'] : t('unlabeled');
   }
+
+  /**
+   * Returns the name of the element's plugin.
+   */
+  public function plugin() {
+    return $this->itemName;
+  }
 }
 
 

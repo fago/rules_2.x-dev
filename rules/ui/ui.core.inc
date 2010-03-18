@@ -24,6 +24,7 @@ interface RulesPluginUIInterface {
    *    - 'show settings': Whether to include the 'settings' fieldset for
    *      editing configuration settings like the label or categories. Defaults
    *      to FALSE.
+   *    - 'button': Whether a submit button should be added. Defaults to FALSE.
    *    - 'restrict plugins: May be used to restrict the list of rules plugins
    *      that may be added to this configuration. For that set an array of
    *      valid plugins. Note that conditions and actions are always valid, so
@@ -94,14 +95,103 @@ class RulesPluginUI extends FacesExtender implements RulesPluginUIInterface {
 
   /**
    * Implements RulesPluginUIInterface.
+   * Generates the element edit form.
    */
-  //TODO: Show element edit form.
   public function form(&$form, &$form_state, $options = array()) {
+    $data_info = rules_fetch_data('data_info');
 
-    $form['#theme'] = 'rules_element_view';
-    $form['head'] = array(
-      '#markup' => check_plain($this->element->label()),
+    $form['parameter'] = array(
+      '#type' => 'container',
+      '#tree' => TRUE,
+      '#id' => 'rules-parameter-wrapper'
     );
+
+    foreach($this->element->parameterInfo() as $name => $parameter) {
+
+      $form['parameter'][$name] = array(
+        '#type' => 'fieldset',
+        '#title' => check_plain($parameter['label']),
+        '#description' => check_plain(isset($parameter['description']) ? $parameter['description'] : ''),
+      );
+      $link_id = drupal_html_id('rules-parameter-switch-' . $name);
+
+      $form['parameter'][$name]['link'] = array(
+        '#type' => 'link',
+        '#href' => '#',
+        '#title' => t('Switch'),
+        // #id is used for ajax js code generation.
+        '#id' => $link_id,
+        // Needed to actually output the #id.
+        '#options' => array('attributes' => array('id' => $link_id)),
+        '#process' => array('ajax_process_form'),
+        // Hide the link by default and unhide it by javascript.
+        '#prefix' => '<div class="rules_hidden rules_parameter_switch">',
+        '#suffix' => '</div>',
+        '#attached' => array(
+          'js' => array(drupal_get_path('module', 'rules') . '/ui/rules.ui.js'),
+          'css' => array(drupal_get_path('module', 'rules') . '/ui/rules.ui.css'),
+        ),
+        '#ajax' => array(
+          'callback' => 'rules_ui_parameter_replace',
+          'wrapper' => 'rules-parameter-wrapper',
+          'event' => 'click',
+          // Trigger as the Switch button.
+          'trigger_as' => array(
+            'name' => 'param_' . $name,
+            'value' => t('Switch')
+          ),
+        ),
+      );
+      $form['parameter'][$name]['switch'] = array(
+        '#type' => 'submit',
+        '#name' => 'param_' . $name,
+        '#parameter' => $name,
+        '#value' => t('Switch'),
+        '#submit' => array('rules_ui_parameter_replace_submit'),
+        '#ajax' => array(
+          'callback' => 'rules_ui_parameter_replace',
+          'wrapper' => 'rules-parameter-wrapper',
+        ),
+        // Do not validate!
+        '#limit_validation_errors' => array(),
+      );
+      // Init the parameter mode.
+      if (!isset($form_state['parameter_mode'][$name])) {
+        if (isset($this->element->settings[$name . ':select'])) {
+          $form_state['parameter_mode'][$name] = 'selector';
+        }
+        else {
+          $form_state['parameter_mode'][$name] = 'input';
+        }
+      }
+
+      if ($form_state['parameter_mode'][$name] == 'selector') {
+        $form['parameter'][$name]['settings'][$name . ':select'] = array(
+          '#type' => 'textfield',
+          '#title' => t('Data'),
+          '#default_value' => isset($this->element->settings[$name . ':select']) ? $this->element->settings[$name . ':select'] : '',
+        );
+      }
+      else {
+        $form['parameter'][$name]['settings'][$name] = array(
+          '#type' => 'textfield',
+          '#title' => t('Value'),
+          '#default_value' => isset($this->element->settings[$name]) ? $this->element->settings[$name] : '',
+        );
+      }
+    }
+    // Add settings form, if specified.
+    if (!empty($options['show settings'])) {
+      $this->settingsForm($form, $form_state);
+    }
+    // Add submit button, if specified.
+    if (!empty($options['button'])) {
+      $form['submit'] = array(
+        '#type' => 'submit',
+        '#value' => t('Save'),
+        '#weight' => 10,
+      );
+    }
   }
 
   /**
@@ -120,19 +210,33 @@ class RulesPluginUI extends FacesExtender implements RulesPluginUIInterface {
       //TODO: Add visual feedback which element had troubles.
       form_set_error('', $e->getMessage());
     }
+    if (!empty($form['settings'])) {
+      $this->settingsFormValidate($form, $form_state);
+    }
   }
 
   /**
    * Applies the values of the form to the element.
    */
   function form_extract_values($form, $form_state) {
-
+    $this->element->settings = array();
+    foreach ($form_state['values']['parameter'] as $name => $values) {
+      foreach ($values['settings'] as $key => $value) {
+        $this->element->settings[$key] = $value;
+      }
+    }
+    if (!empty($form['settings'])) {
+      $this->settingsFormExtractValues($form, $form_state);
+    }
   }
 
   /**
    * Implements RulesPluginUIInterface.
    */
   public function form_submit(&$form, &$form_state) {
+    if (!empty($form['settings'])) {
+      $this->settingsFormSubmit($form, $form_state);
+    }
     $this->element->save();
     // Clear the element id index map, so the map is regenerated in case of a
     // form rebuild. That way the map is indentical to the map that would be
@@ -140,6 +244,47 @@ class RulesPluginUI extends FacesExtender implements RulesPluginUIInterface {
     self::clearElementMap($this->element->root()->map);
     drupal_set_message(t('Your changes have been saved.'));
   }
+
+  /**
+   * Adds the configuration settings form (label, tags, description, ..).
+   */
+  public function settingsForm(&$form, &$form_state) {
+    // Add the settings in a separate fieldset below.
+    $form['settings'] = array(
+      '#type' => 'fieldset',
+      '#title' => t('Settings'),
+      '#collapsible' => TRUE,
+      '#collapsed' => TRUE,
+      '#weight' => 5,
+    );
+    $form['settings']['label'] = array(
+      '#type' => 'textfield',
+      '#title' => 'Label',
+      '#default_value' => $this->element->label(),
+      '#required' => TRUE,
+    );
+    $form['settings']['weight'] = array(
+      '#type' => 'weight',
+      '#title' => t('Weight'),
+      '#default_value' => $this->element->weight,
+      '#delta' => 10,
+    );
+    // TODO: Attach field form thus description and tags.
+  }
+
+  public function settingsFormExtractValues($form, &$form_state) {
+    $this->element->label = $form_state['values']['label'];
+    $this->element->weight = $form_state['values']['weight'];
+  }
+
+  public function settingsFormValidate($form, &$form_state) {
+
+  }
+
+  public function settingsFormSubmit($form, &$form_state) {
+
+  }
+
 
   /**
    * Implements RulesPluginUIInterface.
@@ -169,10 +314,12 @@ class RulesPluginUI extends FacesExtender implements RulesPluginUIInterface {
     $render['#links']['edit'] = array(
       'title' => t('Edit'),
       'href' => RulesPluginUI::path($name, 'edit', $element_id),
+      'query' => drupal_get_destination(),
     );
     $render['#links']['delete'] = array(
       'title' => t('Delete'),
       'href' => RulesPluginUI::path($name, 'delete', $element_id),
+      'query' => drupal_get_destination(),
     );
     return $render;
   }
@@ -326,12 +473,16 @@ class RulesContainerPluginUI extends RulesPluginUI {
    * Generates a table for editing the contained elements.
    */
   public function form(&$form, &$form_state, $options = array(), $iterator = NULL) {
-    $form['#type'] = 'container';
-    $form['#tree'] = TRUE;
-    $form['#attributes']['class'][] = 'rules-container-plugin';
+    $form['elements'] = array(
+      '#tree' => TRUE,
+      '#theme' => 'rules_elements',
+      '#empty' => t('None'),
+      '#heading' => t('Elements')
+    );
+    $form['elements']['#attributes']['class'][] = 'rules-container-plugin';
 
     // Recurse over all element childrens or use the provided iterator.
-    $iterator = new RecursiveIteratorIterator(isset($iterator) ? $iterator : $this->element, RecursiveIteratorIterator::SELF_FIRST);
+    $iterator = isset($iterator) ? $iterator : new RecursiveIteratorIterator($this->element, RecursiveIteratorIterator::SELF_FIRST);
     $root_depth = $this->element->depth();
     foreach ($iterator as $key => $child) {
       $id = self::childElementId($child);
@@ -359,9 +510,19 @@ class RulesContainerPluginUI extends RulesPluginUI {
       );
       $form['elements'][$id]['operations'] = $child->operations();
     }
-    $form['elements']['#options'] = $options;
-    $form['elements']['#theme'] = 'rules_elements';
-    $form['elements'] += array('#empty' => t('None'), '#heading' => t('Elements'));
+
+    // Add settings form, if specified.
+    if (!empty($options['show settings'])) {
+      $this->settingsForm($form, $form_state);
+    }
+    // Add submit button, if specified.
+    if (!empty($options['button'])) {
+      $form['submit'] = array(
+        '#type' => 'submit',
+        '#value' => t('Save changes'),
+        '#weight' => 10,
+      );
+    }
   }
 
   /**
@@ -383,6 +544,9 @@ class RulesContainerPluginUI extends RulesPluginUI {
         $child->setParent($parent ? $parent : $this->element);
       }
       $this->element->sortChildren(TRUE);
+    }
+    if (!empty($form['settings'])) {
+      $this->settingsFormExtractValues($form, $form_state);
     }
   }
 
@@ -409,6 +573,7 @@ class RulesContainerPluginUI extends RulesPluginUI {
         $render['#links']['add_' . $plugin] = array(
           'title' => t('Add !name', array('!name' => $plugin)),
           'href' => RulesPluginUI::path($name, 'add/' . $plugin, $element_id),
+          'query' => drupal_get_destination(),
         );
       }
     }
@@ -425,7 +590,7 @@ class RulesConditionContainerUI extends RulesContainerPluginUI {
     parent::form($form, $form_state, $options, $iterator);
     // Add the add-* operation links.
     $form['add'] = self::addOperations();
-    $form['#attributes']['class'][] = 'rules-condition-container';
+    $form['elements']['#attributes']['class'][] = 'rules-condition-container';
     $form['elements']['#heading'] = t('Conditions');
   }
 }
@@ -439,7 +604,7 @@ class RulesActionContainerUI extends RulesContainerPluginUI {
     parent::form($form, $form_state, $options, $iterator);
     // Add the add-* operation links.
     $form['add'] = self::addOperations();
-    $form['#attributes']['class'][] = 'rules-action-container';
+    $form['elements']['#attributes']['class'][] = 'rules-action-container';
     $form['elements']['#heading'] = t('Actions');
   }
 }

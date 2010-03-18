@@ -8,7 +8,7 @@
 /**
  * Rule specific UI.
  */
-class RulesRuleUI extends RulesContainerPluginUI {
+class RulesRuleUI extends RulesActionContainerUI {
 
   protected $rule, $conditions;
 
@@ -21,49 +21,29 @@ class RulesRuleUI extends RulesContainerPluginUI {
   }
 
   public function form(&$form, &$form_state, $options = array()) {
-    $form += array('conditions' => array(), 'actions' => array());
-    $this->conditions->form($form['conditions'], $form_state, $options);
+    $form += array('conditions' => array('#weight' => -5));
+    $this->conditions->form($form['conditions'], $form_state);
 
     // Add actions form.
-    parent::form($form['actions'], $form_state, $options, $this->rule->actions());
-
-    // Add the settings in a separate fieldset below.
-    $form['settings'] = array(
-      '#type' => 'fieldset',
-      '#title' => t('Settings'),
-      '#collapsible' => TRUE,
-      '#collapsed' => TRUE,
-    );
-    $form['settings']['label'] = array(
-      '#type' => 'textfield',
-      '#title' => 'Label',
-      '#default_value' => $this->rule->label,
-      '#required' => TRUE,
-    );
-    // TODO: Description as field
-    $form['settings']['weight'] = array(
-      '#type' => 'weight',
-      '#title' => t('Weight'),
-      '#default_value' => $this->rule->weight,
-      '#delta' => 10,
-    );
-
-    $form['submit'] = array(
-      '#type' => 'submit',
-      '#value' => t('Save Changes'),
-    );
-    $form_state['rules_config'][$this->rule->name] = $this->rule;
+    $iterator = new RecursiveIteratorIterator($this->rule->actions(), RecursiveIteratorIterator::SELF_FIRST);
+    parent::form($form, $form_state, $options, $iterator);
   }
 
   /**
    * Applies the values of the form to the rule configuration.
    */
   function form_extract_values($form, $form_state) {
-    $this->rule->label = $form_state['values']['label'];
-    $this->rule->weight = $form_state['values']['weight'];
     // Run condition and action container value extraction.
     $this->conditions->extender('RulesConditionContainerUI')->form_extract_values($form['conditions'], $form_state);
-    parent::form_extract_values($form['actions'], $form_state);
+    parent::form_extract_values($form, $form_state);
+  }
+
+
+  public function operations() {
+    // When rules are listed only show the edit and delete operations.
+    $ops = parent::operations();
+    $ops['#links'] = array_intersect_key($ops['#links'], array_flip(array('edit', 'delete')));
+    return $ops;
   }
 }
 
@@ -95,3 +75,23 @@ class RulesReactionRuleUI extends RulesRuleUI {
     parent::form($form, $form_state, $options);
   }
 }
+
+/**
+ * Rule set specific UI.
+ */
+class RulesRuleSetUI extends RulesActionContainerUI {
+
+  public function form(&$form, &$form_state, $options = array(), $iterator = NULL) {
+    // Pass an iterator just iterating over the rules, thus no further child
+    // elements will be displayed.
+    parent::form($form, $form_state, $options, $this->element->getIterator());
+    // Only show the add rule link.
+    $form['add']['#links'] = array_intersect_key($form['add']['#links'], array('add_rule' => 1));
+    $form['elements']['#attributes']['class'][] = 'rules-rule-set';
+    $form['elements']['#heading'] = t('Rules');
+  }
+
+}
+
+
+

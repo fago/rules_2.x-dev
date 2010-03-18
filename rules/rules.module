@@ -356,10 +356,9 @@ function rules_rules_plugin_info() {
       'class' => 'Rule',
       'embeddable' => 'RulesRuleSet',
       'extenders' => array(
-        //Interfaces => array( class => className / methods => array of Methods)
-      ),
-      'overrides' => array(
-        //array of overrides each being an array ('methods' => .., 'file' => ..)
+        'RulesPluginUIInterface' => array(
+          'class' => 'RulesRuleUI',
+        ),
       ),
     ),
     'loop' => array(
@@ -367,7 +366,7 @@ function rules_rules_plugin_info() {
       'embeddable' => 'RulesActionContainer',
       'extenders' => array(
         'RulesPluginUIInterface' => array(
-          'class' => 'RulesContainerPluginUI',
+          'class' => 'RulesActionContainerUI',
         ),
       ),
     ),
@@ -389,6 +388,11 @@ function rules_rules_plugin_info() {
       'component' => TRUE,
       // Rule sets don't get embedded - we use a separate action to execute.
       'embeddable' => FALSE,
+      'extenders' => array(
+        'RulesPluginUIInterface' => array(
+          'class' => 'RulesRuleSetUI',
+        ),
+      ),
     ),
   );
 }
@@ -667,7 +671,8 @@ function rules_theme() {
  */
 function rules_menu() {
   $items[RULES_UI_RULE_PATH . '/%rules_config'] = array(
-    'title' => 'Editing rule',
+    'title callback' => 'rules_get_title',
+    'title arguments' => array('Editing @plugin "@label"', 5),
     'page callback' => 'drupal_get_form',
     'page arguments' => array('rules_ui_form_edit_rules_config', 5),
     'access arguments' => array('administer rules'),
@@ -684,11 +689,22 @@ function rules_menu() {
     'file' => 'ui/ui.forms.inc',
   );
   $items[RULES_UI_RULE_PATH . '/%rules_config/edit/%rules_element'] = array(
-    'title' => 'Editing element',
+    'title callback' => 'rules_get_title',
+    'title arguments' => array('Editing @plugin "@label"', 7),
     'page callback' => 'drupal_get_form',
     'page arguments' => array('rules_ui_edit_element', 5, 7),
     'access arguments' => array('administer rules'),
     'load arguments' => array(5),
+    'type' => MENU_CALLBACK,
+    'file' => 'ui/ui.forms.inc',
+  );
+  $items[RULES_UI_RULE_PATH . '/%rules_config/delete'] = array(
+    'title callback' => 'rules_get_title',
+    'title arguments' => array('Editing @plugin "@label"', 5),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('rules_ui_form_delete_rules_config', 5),
+    'access arguments' => array('administer rules'),
+    'description' => 'Manage reaction rules and rule components.',
     'type' => MENU_CALLBACK,
     'file' => 'ui/ui.forms.inc',
   );
@@ -701,4 +717,11 @@ function rules_menu() {
 function rules_element_load($element_id, $config_name) {
   $config = rules_config_load($config_name);
   return RulesPluginUI::getChildElementById($config, $element_id);
+}
+
+/**
+ * Callback for getting the title as configured.
+ */
+function rules_get_title($text, $element) {
+  return t($text, array('@label' => $element->label(), '@plugin' => $element->plugin()));
 }
