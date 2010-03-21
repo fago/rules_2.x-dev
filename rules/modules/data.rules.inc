@@ -291,7 +291,7 @@ function rules_data_action_info() {
  * Customize access check for data set action.
  */
 function rules_action_data_set_access(RulesAbstractPlugin $element) {
-  if (isset($element->settings['data:select']) && $wrapper = $element->call('applyDataSelector', array($element->settings['data:select']))) {
+  if (isset($element->settings['data:select']) && $wrapper = $element->applyDataSelector($element->settings['data:select'])) {
     return $wrapper instanceof EntityMetadataWrapper && $wrapper->access('edit');
   }
 }
@@ -400,7 +400,7 @@ function rules_action_entity_create_process(RulesAbstractPlugin $element) {
  * Custom access callback for data save and delete action.
  */
 function rules_action_entity_savedelete_access(RulesAbstractPlugin $element) {
-  if ($wrapper = $element->call('applyDataSelector', array($element->settings['data:select']))) {
+  if ($wrapper = $element->applyDataSelector($element->settings['data:select'])) {
     $op = $element->getElementName() == 'entity_save' ? 'save' : 'delete';
     return $wrapper instanceof EntityDrupalWrapper && $wrapper->entityAccess($op);
   }

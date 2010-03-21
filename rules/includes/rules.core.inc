@@ -497,7 +497,7 @@ abstract class RulesPlugin extends RulesExtendable {
       $arg = $var;
     }
     elseif (isset($this->settings[$name . ':select'])) {
-      if (!($wrapper = $this->applyDataSelector($this->settings[$name . ':select'], $state))) {
+      if (!($wrapper = $state->applyDataSelector($this->settings[$name . ':select']))) {
         throw new RulesException('Unable to apply data selector %selector.', array('%selector' => $this->settings[$name . ':select']), $this);
       }
       $arg = $wrapper;
@@ -522,36 +522,29 @@ abstract class RulesPlugin extends RulesExtendable {
   }
 
   /**
-   * Returns an entity metadata wrapper as specified in the selector.
+   * Apply the given data selector by using the info about available variables.
+   * Thus it doesn't require an actual evaluation state.
    *
    * @param $selector
    *   The selector string, e.g. "node:author:mail".
-   * @param $state
-   *   Optionally, the rules evaluation state. Only if the state is given the
-   *   wrapper will actually wrap data.
    * @return EntityMetadataWrapper
-   *   The selected data, wich may but need not be a EntityMetadataWrapper or if
-   *   the selector couldn't be applied: FALSE.
+   *   An empty wrapper for the given selector or FALSE if the selector couldn't
+   *   be applied.
    */
-  protected function applyDataSelector($selector, RulesState $state = NULL) {
+  public function applyDataSelector($selector) {
     $parts = explode(':', $selector, 2);
-    // Use the evaluation state to get the wrapper.
-    if (isset($state) && ($var = $state->get($parts[0]))) {
-      $wrapper = $var;
-    }
-    // If there is no evaluation state yet, so make use the variable info.
-    elseif (!isset($state) && ($vars = $this->availableVariables()) && isset($vars[$parts[0]]['type'])) {
-      $wrapper = rules_wrap_data($data = NULL, $vars[$parts[0]]);
-    }
-    if (isset($wrapper) && count($parts) > 1 && $wrapper instanceof EntityMetadataWrapper) {
-      try {
-        foreach (explode(':', $parts[1]) as $name) {
-          $wrapper = $wrapper->get($name);
+    if (($vars = $this->availableVariables()) && isset($vars[$parts[0]]['type'])) {
+      $wrapper = rules_wrap_data($data = NULL, $vars[$parts[0]], TRUE);
+      if (count($parts) > 1 && $wrapper instanceof EntityMetadataWrapper) {
+        try {
+          foreach (explode(':', $parts[1]) as $name) {
+            $wrapper = $wrapper->get($name);
+          }
         }
-      }
-      // In case of an exception or we were unable to get a wrapper, return FALSE.
-      catch (EntityMetadataWrapperException $e) {
-        return FALSE;
+        // In case of an exception or we were unable to get a wrapper, return FALSE.
+        catch (EntityMetadataWrapperException $e) {
+          return FALSE;
+        }
       }
     }
     return isset($wrapper) ? $wrapper : FALSE;
