@@ -464,7 +464,7 @@ abstract class RulesPlugin extends RulesExtendable {
   }
 
   protected function checkVarName($name) {
-    if (!eregi('^[0-9a-z_\-]*$', $name)) {
+    if (!preg_match('/^[0-9a-zA-Z]*$/', $name)) {
       throw new RulesException('%plugin: The variable name @name contains not allowed characters.', array('%plugin' => $this->getPluginName(), '%name' => $name), $this);
     }
   }
@@ -601,7 +601,9 @@ abstract class RulesPlugin extends RulesExtendable {
         // Find a unique name for this configuration.
         $this->name = $this->module . '_';
         for ($i = 0; $i < 8; $i++) {
-          $this->name .= chr(mt_rand(32, 126));
+          //Alphanumeric name generation
+          $rnd = mt_rand(97, 122);
+          $this->name .= chr($rnd);
         }
       }
       $this->data = $this;

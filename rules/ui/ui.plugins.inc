@@ -53,24 +53,39 @@ class RulesRuleUI extends RulesActionContainerUI {
 class RulesReactionRuleUI extends RulesRuleUI {
 
   public function form(&$form, &$form_state, $options = array()) {
-
-    $form['elements']['events'] = array(
+    $form['events'] = array(
       '#type' => 'container',
-      '#title' => t('On'),
+      '#weight' => -10,
     );
 
     $event_info = rules_fetch_data('event_info');
+    $events = array();
     foreach($this->rule->events() as $event_name) {
-      $form['elements']['events'][$event_name] = array(
-        '#markup' => check_plain($event_info[$event_name]['label']),
-        '#prefix' => '<div>',
-        '#suffix' => '&nbsp;<span class="rules_rule_event">' . l(t('delete'), RULES_UI_RULE_PATH) . '</span></div>',
+      $events[$event_name] = array(
+        check_plain($event_info[$event_name]['label']),
+        '<span class="rules_rule_event">' . l(t('delete'), RULES_UI_RULE_PATH) . '</span>',
       );
     }
 
-    $form['elements']['events']['add'] = array(
-      '#markup' => t(l('+ Add event', RULES_UI_RULE_PATH . '/' . $this->rule->name . '/add/event')),
+    $form['events']['table'] = array(
+      '#theme' => 'table',
+      '#header' => array('Event', 'Operations'),
+      '#empty' => t('None'),
+      '#rows' => $events,
     );
+
+    $render = array(
+      '#theme' => 'links__rules',
+    );
+    $render['#attributes']['class'][] = 'rules-operations-add';
+    $render['#attributes']['class'][] = 'action-links';
+    $render['#links']['add_event'] = array(
+      'title' => t('Add event'),
+      'href' => RulesPluginUI::path($this->rule->name, 'add/event'),
+      'query' => drupal_get_destination(),
+    );
+
+    $form['events']['add'] = $render;
 
     parent::form($form, $form_state, $options);
   }

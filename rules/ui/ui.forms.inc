@@ -120,3 +120,10 @@ function rules_ui_parameter_replace_submit($form, &$form_state) {
 function rules_ui_parameter_replace($form, $form_state) {
   return $form['parameter'];
 }
+
+/**
+ * Configure a rule element.
+ */
+function rules_ui_add_event($form, &$form_state, $rule) {
+  firep($rule);
+}
