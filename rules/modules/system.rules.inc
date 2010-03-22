@@ -138,5 +138,17 @@ function rules_system_integration_access($type, $name) {
 }
 
 /**
+ * Implements hook_rules_evaluator_info() on behalf of the system module.
+ */
+function rules_system_evaluator_info() {
+  return array(
+    'RulesTokenProcessor' => array(
+      'label' => t('Token replacement patterns'),
+      'weight' => -5,
+     ),
+  );
+}
+
+/**
  * @}
  */

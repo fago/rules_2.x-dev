@@ -107,8 +107,7 @@ class RulesPluginUI extends FacesExtender implements RulesPluginUIInterface {
     );
 
     foreach($this->element->parameterInfo() as $name => $parameter) {
-      $data_info[$parameter['type']] += array('ui class' => 'RulesDataUI');
-      $class = $data_info[$parameter['type']]['ui class'];
+      $class = is_string($type = $parameter['type']) && isset($data_info[$type]['ui class']) ? $data_info[$type]['ui class'] : 'RulesDataUI';
 
       $form['parameter'][$name] = array(
         '#type' => 'fieldset',
@@ -118,7 +117,7 @@ class RulesPluginUI extends FacesExtender implements RulesPluginUIInterface {
 
       // Init the parameter input mode.
       $form_state['parameter_mode'][$name] = !isset($form_state['parameter_mode'][$name]) ? NULL : $form_state['parameter_mode'][$name];
-      $form['parameter'][$name] += $this->getParameterForm($this->element->settings, $name, $class, $form_state['parameter_mode'][$name]);
+      $form['parameter'][$name] += $this->getParameterForm($name, $parameter, $class, $form_state['parameter_mode'][$name]);
     }
 
     // Add settings form, if specified.
@@ -138,7 +137,8 @@ class RulesPluginUI extends FacesExtender implements RulesPluginUIInterface {
   /**
    * Actually generates the parameter form for the given data type.
    */
-  protected function getParameterForm($settings, $name, $class, &$mode) {
+  protected function getParameterForm($name, $info, $class, &$mode) {
+    $settings = $this->element->settings;
     // Init the mode.
     if (!isset($mode)) {
       if (isset($settings[$name . ':select'])) {
@@ -155,10 +155,10 @@ class RulesPluginUI extends FacesExtender implements RulesPluginUIInterface {
 
     // Add the parameter form.
     if ($mode == 'input' && $supports_input_mode) {
-      $form['settings'] = call_user_func(array($class, 'inputForm'), $name, $settings);
+      $form['settings'] = call_user_func(array($class, 'inputForm'), $name, $info, $this->element);
     }
     else {
-      $form['settings'] = call_user_func(array($class, 'selectionForm'), $name, $settings);
+      $form['settings'] = call_user_func(array($class, 'selectionForm'), $name, $info, $this->element);
     }
 
     // Add a link for switching the input mode when JS is enabled and a button

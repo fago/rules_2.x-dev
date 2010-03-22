@@ -503,7 +503,7 @@ abstract class RulesPlugin extends RulesExtendable {
       $arg = $wrapper;
     }
     elseif (isset($this->settings[$name])) {
-      $arg = $this->settings[$name];
+      $arg = $this->settings[$name] instanceof RulesDataProcessor ? $this->settings[$name]->value($info, $state, $this) : $this->settings[$name];
     }
     elseif (($var = $state->get($name)) !== NULL) {
       $arg = $var;

@@ -96,3 +96,21 @@ function rules_ui_parameter_replace_submit($form, &$form_state) {
 function rules_ui_parameter_replace($form, $form_state) {
   return $form['parameter'];
 }
+
+
+/**
+ * Form API value callback which applies rules input evaluators to textual
+ * values. Thus the form element value will be a RulesDataProcessor if
+ * applicable.
+ *
+ * @todo: Fix form inclusion problems and move to ui.data.inc.
+ */
+function rules_data_input_text_value($element, $input = FALSE, $form_state) {
+  if ($input !== FALSE) {
+    return RulesDataInputEvalProcessor::preparedValue($input, $element['#rules_variables']);
+  }
+  else {
+    // In case $input === FALSE we have to return the default value.
+    return $element['#default_value'];
+  }
+}

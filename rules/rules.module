@@ -279,8 +279,6 @@ function &rules_wrap_data(&$data = NULL, $info, $force = FALSE) {
  *   An array containing unwrapped or passed through data.
  */
 function rules_unwrap_data(array $data, $info = array()) {
-  //TODO: support a method for getting sanitized values of text wrappers,
-  // so tokens can make use of it.
   foreach ($data as $key => $entry) {
     // If it's a wrapper, unwrap.
     if ($entry instanceof EntityMetadataWrapper) {
@@ -425,12 +423,18 @@ function rules_entity_info() {
  * Implementation of hook_hook_info().
  */
 function rules_hook_info() {
-  foreach(array('plugin_info', 'data_info', 'condition_info', 'action_info', 'event_info', 'file_info') as $hook) {
+  foreach(array('plugin_info', 'data_info', 'condition_info', 'action_info', 'event_info', 'file_info', 'evaluator_info') as $hook) {
     $hooks['rules_' . $hook] = array(
+      'group' => 'rules',
+    );
+    $hooks['rules_' . $hook . '_alter'] = array(
       'group' => 'rules',
     );
   }
   $hooks['default_rules_configuration'] = array(
+    'group' => 'rules_defaults',
+  );
+  $hooks['default_rules_configuration_alter'] = array(
     'group' => 'rules_defaults',
   );
   return $hooks;

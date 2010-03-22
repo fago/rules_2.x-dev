@@ -93,6 +93,19 @@ function rules_rules_data_info() {
 }
 
 /**
+ * Implements hook_rules_evaluator_info().
+ */
+function rules_rules_evaluator_info() {
+  $items = array();
+  foreach (rules_core_modules() as $module) {
+    if (function_exists($function = "rules_{$module}_evaluator_info")) {
+      $items += $function();
+    }
+  }
+  return $items;
+}
+
+/**
  * Returns the parameter definition for the acting user (global $user)
  */
 function rules_events_global_user_parameter() {
