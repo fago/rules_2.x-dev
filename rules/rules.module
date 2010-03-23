@@ -744,3 +744,52 @@ function rules_element_load($element_id, $config_name) {
 function rules_get_title($text, $element) {
   return t($text, array('@label' => $element->label(), '@plugin' => $element->plugin()));
 }
+
+/**
+ * Implements hook_page_build() to add the rules debug log to the page bottom.
+ */
+function rules_page_build(&$page) {
+  if (variable_get('rules_debug', FALSE)) {
+    $region = 'help';
+
+    if (isset($_SESSION['rules_debug'])) {
+      foreach ($_SESSION['rules_debug'] as $log) {
+        $page[$region]['rules_debug'][] = array(
+          '#markup' => $log,
+        );
+      }
+      unset($_SESSION['rules_debug']);
+    }
+    $logger = RulesLog::logger();
+    if ($log = $logger->render()) {
+      $page[$region]['rules_debug'][] = array(
+        '#markup' => $log,
+      );
+      $logger->clear();
+    }
+    if (!empty($page[$region]['rules_debug'])) {
+      $page[$region]['rules_debug']['#attached'] = array(
+        'css' => array(drupal_get_path('module', 'rules') . '/ui/rules.ui.css'),
+      );
+      $page[$region]['rules_debug']['heading'] = array(
+        '#markup' => '<h3>' . t('Rules evaluation log') . '</h3>',
+        '#weight' => -1
+      );
+      $page[$region]['rules_debug'] += array(
+        '#prefix' => '<div class="rules-debug-log">',
+        '#suffix' => '</div>',
+        '#weight' => 5
+      );
+    }
+  }
+}
+
+/**
+ * Implements hook_exit().
+ */
+function rules_exit() {
+  if (variable_get('rules_debug', FALSE) && $log = RulesLog::logger()->render()) {
+    // Keep the log in the session so we can show it on the next page.
+    $_SESSION['rules_debug'][] = $log;
+  }
+}
