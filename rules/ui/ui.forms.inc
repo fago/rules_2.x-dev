@@ -78,13 +78,25 @@ function rules_ui_add_element($form, &$form_state, $rules_config, $type, $elemen
   else {
     $parent_element = RulesPluginUI::getChildElementById($rules_config, $element_id);
     switch($type) {
+      case 'condition':
+        $element = rules_condition($form_state['values']['element_name']);
+        $rules_config->condition($element);
+        break;
+      case 'or':
+        $element = rules_or($form_state['values']['element_name']);
+        $rules_config->condition($element);
+        break;
+      case 'and':
+        $element = rules_and($form_state['values']['element_name']);
+        $rules_config->condition($element);
+        break;
       case 'action':
         $element = rules_action($form_state['values']['element_name']);
         $rules_config->action($element);
         break;
-      case 'condition':
-        $element = rules_condition($form_state['values']['element_name']);
-        $rules_config->condition($element);
+      case 'loop':
+        $element = rules_loop($form_state['values']['element_name']);
+        $rules_config->action($element);
         break;
     }
 
