@@ -349,7 +349,6 @@ class RulesLoop extends RulesActionContainer {
 
   public function integrityCheck() {
     parent::integrityCheck();
-    $this->checkParameterSettings();
     $this->checkVarName($this->info['item:var']);
   }
 

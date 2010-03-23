@@ -43,23 +43,28 @@ class RulesDataInputEvalProcessor extends RulesDataProcessor {
    *
    * @param $value
    *   The value to be processed.
+   * @param $param_info
+   *   The info about the parameter to prepare the value for.
    * @param $var_info
    *   An array of info about the available variables.
    */
-  public static function preparedValue($value, $var_info = array()) {
-    $processor = new RulesDataInputEvalProcessor($value, $var_info = array());
-    return $processor->usedVars ? $processor : $processor->value;
+  public static function prepareValue(&$value, $param_info, $var_info = array()) {
+    if (self::evaluators($param_info)) {
+      $processor = new RulesDataInputEvalProcessor($value, $param_info, $var_info = array());
+      if ($processor->usedVars) {
+        // An input evaluator has been used, so the value needs processing.
+        $value = $processor;
+      }
+    }
   }
 
-
-
-  protected function __construct($value, $var_info = array()) {
+  protected function __construct($value, $param_info, $var_info = array()) {
     $this->value = $value;
-    $this->prepare($var_info);
+    $this->prepare($param_info, $var_info);
   }
 
-  protected function prepare($var_info) {
-    foreach (self::evaluators() as $base => $info) {
+  protected function prepare($param_info, $var_info) {
+    foreach (self::evaluators($param_info) as $base => $info) {
       $data = call_user_func(array($base, 'prepare'), $this->value, $var_info);
       if (isset($data)) {
         $this->usedVars[$base] = $data;
@@ -94,24 +99,40 @@ class RulesDataInputEvalProcessor extends RulesDataProcessor {
    * @return
    *   A renderable array of help.
    */
-  public static function help($var_info) {
-    $render = array();
-    foreach (self::evaluators() as $base => $info) {
-      $render[$base] = call_user_func(array($base, 'help'), $var_info);
-      $render[$base]['#weight'] = $info['weight'];
+  public static function help(&$form, $param_info, $var_info) {
+    foreach (self::evaluators($param_info) as $base => $info) {
+      $form['help'][$base] = call_user_func(array($base, 'help'), $var_info);
+      $form['help'][$base]['#weight'] = $info['weight'];
     }
-    return $render;
   }
 
 
-  public static function evaluators() {
-    static $evaluators;
+  /**
+   * Returns all input evaluators that can be applied to the parameters needed
+   * type.
+   */
+  public static function evaluators($param_info) {
+    static $evaluators = array();
 
-    if (!isset($evaluators)) {
-      $evaluators = rules_fetch_data('evaluator_info');
-      uasort($evaluators, array(__CLASS__, '_evaluator_sort'));
+    if (!isset($evaluators['all'])) {
+      $evaluators['all'] = rules_fetch_data('evaluator_info');
+      uasort($evaluators['all'], array(__CLASS__, '_evaluator_sort'));
     }
-    return $evaluators;
+    // Input mode isn't supported for multiple types.
+    if (is_array($param_info['type'])) {
+      return array();
+    }
+    // Filter the evaluators by type.
+    if (!isset($evaluators[$param_info['type']])) {
+      $evaluators[$param_info['type']] = array();
+      foreach ($evaluators['all'] as $name => $info) {
+        // Check whether the parameter type matches the supported types.
+        if (RulesData::typesMatch($param_info, $info)) {
+          $evaluators[$param_info['type']][$name] = $info;
+        }
+      }
+    }
+    return $evaluators[$param_info['type']];
   }
 
   public static function _evaluator_sort($a, $b) {

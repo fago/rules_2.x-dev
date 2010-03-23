@@ -15,7 +15,7 @@ interface RulesDataDirectInputForm {
    * @return Array
    *  The direct input form.
    */
-  public function inputForm($name, $info, RulesPlugin $element);
+  public function inputForm($name, $info, $settings, RulesPlugin $element);
 }
 
 /**
@@ -33,11 +33,11 @@ class RulesDataUI {
   /**
    * Provides the selection form for a parameter.
    */
-  public function selectionForm($name, $info, RulesPlugin $element) {
+  public function selectionForm($name, $info, $settings, RulesPlugin $element) {
     $form[$name . ':select'] = array(
       '#type' => 'textfield',
       '#title' => t('Data selector'),
-      '#default_value' => isset($element->settings[$name . ':select']) ? $element->settings[$name . ':select'] : '',
+      '#default_value' => isset($settings[$name . ':select']) ? $settings[$name . ':select'] : '',
     );
     return $form;
   }
@@ -52,15 +52,12 @@ class RulesDataUIText extends RulesDataUI implements RulesDataDirectInputForm {
     return 'input';
   }
 
-  public function inputForm($name, $info, RulesPlugin $element) {
+  public function inputForm($name, $info, $settings, RulesPlugin $element) {
     $form[$name] = array(
       '#type' => 'textarea',
       '#title' => t('Value'),
-      '#default_value' => isset($element->settings[$name]) ? (string)$element->settings[$name] : '',
-      '#value_callback' => 'rules_data_input_text_value',
-      '#rules_variables' => $element->availableVariables(),
+      '#default_value' => isset($settings[$name]) ? (string)$settings[$name] : '',
     );
-    $form['help'] = RulesDataInputEvalProcessor::help($element->availableVariables());
     return $form;
   }
 }
@@ -74,11 +71,11 @@ class RulesDataUIBoolean extends RulesDataUI implements RulesDataDirectInputForm
     return 'input';
   }
 
-  public function inputForm($name, $info, RulesPlugin $element) {
+  public function inputForm($name, $info, $settings, RulesPlugin $element) {
     $form[$name] = array(
       '#type' => 'checkbox',
       '#title' => t('Enabled'),
-      '#default_value' => !empty($element->settings[$name]),
+      '#default_value' => !empty($settings[$name]),
     );
     return $form;
   }

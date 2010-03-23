@@ -107,7 +107,8 @@ class RulesTokenProcessor implements RulesDataInputEvalProcessorInterface {
     $var_info['site']['type'] = 'site';
     foreach (token_scan($text) as $var_name => $tokens) {
       if ($var_name != 'site') {
-        $data[$var_info[$var_name]['type']] = $state->get($var_name);
+        $key = $var_info[$var_name]['type'];
+        $data = rules_unwrap_data(array($key => $state->get($var_name)), array($key => $var_info[$var_name]));
       }
       $replacements += token_generate($var_info[$var_name]['type'], $tokens, $data, $options);
     }

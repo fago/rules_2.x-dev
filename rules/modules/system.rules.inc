@@ -144,6 +144,7 @@ function rules_system_evaluator_info() {
   return array(
     'RulesTokenProcessor' => array(
       'label' => t('Token replacement patterns'),
+      'type' => 'text',
       'weight' => -5,
      ),
   );
