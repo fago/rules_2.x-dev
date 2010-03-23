@@ -27,6 +27,20 @@ abstract class RulesDataProcessor {
    *   The processed value.
    */
   abstract public function value($info, RulesState $state, $element);
+
+  /**
+   * Return whether the current user has permission to use the processor.
+   */
+  abstract static function access();
+
+  /**
+   * Returns whether the current user has permission to edit this instance of
+   * the data processor.
+   */
+  public function editAccess() {
+    // Call the static access() method by default.
+    return $this->access();
+  }
 }
 
 /**
@@ -35,6 +49,19 @@ abstract class RulesDataProcessor {
 class RulesDataInputEvalProcessor extends RulesDataProcessor {
 
   protected $value, $usedVars = array();
+
+  public static function access() {
+    return TRUE;
+  }
+
+  public function editAccess() {
+    foreach ($this->usedVars as $base => $data) {
+      if (!call_user_func(array($base, 'access'))) {
+        return FALSE;
+      }
+    }
+    return TRUE;
+  }
 
   /**
    * Returns the prepared value to store, which is either the unprocessed value
@@ -47,10 +74,12 @@ class RulesDataInputEvalProcessor extends RulesDataProcessor {
    *   The info about the parameter to prepare the value for.
    * @param $var_info
    *   An array of info about the available variables.
+   * @param $access_check
+   *   Whether only accessible input evaluators should be taken into account.
    */
-  public static function prepareValue(&$value, $param_info, $var_info = array()) {
-    if (self::evaluators($param_info)) {
-      $processor = new RulesDataInputEvalProcessor($value, $param_info, $var_info);
+  public static function prepareValue(&$value, $param_info, $var_info = array(), $access_check = TRUE) {
+    if (self::evaluators($param_info, $access_check)) {
+      $processor = new RulesDataInputEvalProcessor($value, $param_info, $var_info, $access_check);
       if ($processor->usedVars) {
         // An input evaluator has been used, so the value needs processing.
         $value = $processor;
@@ -58,13 +87,13 @@ class RulesDataInputEvalProcessor extends RulesDataProcessor {
     }
   }
 
-  protected function __construct($value, $param_info, $var_info = array()) {
+  protected function __construct($value, $param_info, $var_info = array(), $access_check = TRUE) {
     $this->value = $value;
-    $this->prepare($param_info, $var_info);
+    $this->prepare($param_info, $var_info, $access_check);
   }
 
-  protected function prepare($param_info, $var_info) {
-    foreach (self::evaluators($param_info) as $base => $info) {
+  protected function prepare($param_info, $var_info, $access_check) {
+    foreach (self::evaluators($param_info, $access_check) as $base => $info) {
       $data = call_user_func(array($base, 'prepare'), $this->value, $var_info);
       if (isset($data)) {
         $this->usedVars[$base] = $data;
@@ -99,8 +128,8 @@ class RulesDataInputEvalProcessor extends RulesDataProcessor {
    * @return
    *   A renderable array of help.
    */
-  public static function help(&$form, $param_info, $var_info) {
-    foreach (self::evaluators($param_info) as $base => $info) {
+  public static function help(&$form, $param_info, $var_info, $access_check = TRUE) {
+    foreach (self::evaluators($param_info, $access_check) as $base => $info) {
       $form['help'][$base] = call_user_func(array($base, 'help'), $var_info);
       $form['help'][$base]['#weight'] = $info['weight'];
     }
@@ -111,7 +140,7 @@ class RulesDataInputEvalProcessor extends RulesDataProcessor {
    * Returns all input evaluators that can be applied to the parameters needed
    * type.
    */
-  public static function evaluators($param_info) {
+  public static function evaluators($param_info, $access_check = TRUE) {
     static $evaluators = array();
 
     if (!isset($evaluators['all'])) {
@@ -132,7 +161,16 @@ class RulesDataInputEvalProcessor extends RulesDataProcessor {
         }
       }
     }
-    return $evaluators[$param_info['type']];
+    // Apply the access check.
+    $return = $evaluators[$param_info['type']];
+    if ($access_check) {
+      foreach ($return as $base => $info) {
+        if (!call_user_func(array($base, 'access'))) {
+          unset($return[$base]);
+        }
+      }
+    }
+    return $return;
   }
 
   public static function _evaluator_sort($a, $b) {
@@ -144,6 +182,11 @@ class RulesDataInputEvalProcessor extends RulesDataProcessor {
  * A common interface for rules input evaluators.
  */
 interface RulesDataInputEvalProcessorInterface {
+
+  /**
+   * Returns whether the current user has permission to use the input evaluator.
+   */
+  public static function access();
 
   /**
    * Prepares the evalution, e.g. to determine whether the input evaluator has

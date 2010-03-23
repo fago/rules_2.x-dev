@@ -668,6 +668,16 @@ function rules_theme() {
   );
 }
 
+/**
+ * Implements hook_permission().
+ */
+function rules_permission() {
+  return array(
+    'administer rules' => array(
+      'title' => t('Administer rule configurations'),
+    ),
+  );
+}
 
 /**
  * Implements hook_menu().

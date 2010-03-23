@@ -247,7 +247,7 @@ class RulesPluginUI extends FacesExtender implements RulesPluginUIInterface {
         $this->element->settings[$key] = $value;
       }
     }
-    $this->element->processSettings(TRUE);
+    $this->element->processSettings(TRUE, TRUE);
 
     if (!empty($form['settings'])) {
       $this->settingsFormExtractValues($form, $form_state);

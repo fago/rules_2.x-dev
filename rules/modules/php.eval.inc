@@ -14,6 +14,10 @@
  */
 class RulesPHPEvaluator implements RulesDataInputEvalProcessorInterface {
 
+  public static function access() {
+    return user_access('use PHP for settings');
+  }
+
   public static function prepare($text, $var_info) {
     if (strpos($text, '<?') !== FALSE) {
       $used_vars = array();

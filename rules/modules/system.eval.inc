@@ -84,6 +84,10 @@ function _rules_action_drupal_goto_handler($variables) {
  */
 class RulesTokenEvaluator implements RulesDataInputEvalProcessorInterface {
 
+  public static function access() {
+    return TRUE;
+  }
+
   public static function prepare($text, $var_info) {
     if ($scan = token_scan($text)) {
       return TRUE;

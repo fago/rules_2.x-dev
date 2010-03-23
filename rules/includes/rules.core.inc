@@ -447,7 +447,12 @@ abstract class RulesPlugin extends RulesExtendable {
         if ($wrapper->access('view') === FALSE) {
           return FALSE;
         }
-        //TODO: Check input evaluator access.
+        if ($this->settings[$name . ':select'] instanceof RulesDataProcessor && !$this->settings[$name . ':select']->editAccess()) {
+          return FALSE;
+        }
+      }
+      elseif (isset($this->settings[$name]) && $this->settings[$name] instanceof RulesDataProcessor && !$this->settings[$name]->editAccess()) {
+        return FALSE;
       }
     }
     return TRUE;
@@ -459,15 +464,19 @@ abstract class RulesPlugin extends RulesExtendable {
    * Usually settings get processed automatically, however if $this->settings
    * has been altered manually after element construction, it needs to be
    * invoked explicitly with $force set to TRUE.
+   *
+   * @param $access_check
+   *   Whether only input evaluators accessible to the current user should be
+   *   taken into account.
    */
-  public function processSettings($force = FALSE) {
+  public function processSettings($force = FALSE, $access_check = FALSE) {
     // Process if not done yet.
     if ($force || !empty($this->settings['#_needs_processing'])) {
       // Care for input evaluators.
       $var_info = $this->availableVariables();
       foreach ($this->parameterInfo() as $name => $info) {
         if (isset($this->settings[$name])) {
-          RulesDataInputEvalProcessor::prepareValue($this->settings[$name], $info, $var_info);
+          RulesDataInputEvalProcessor::prepareValue($this->settings[$name], $info, $var_info, $access_check);
         }
       }
       unset($this->settings['#_needs_processing']);
@@ -794,10 +803,10 @@ abstract class RulesAbstractPlugin extends RulesPlugin {
     return parent::integrityCheck();
   }
 
-  public function processSettings($force = FALSE) {
+  public function processSettings($force = FALSE, $access_check = FALSE) {
     // Process if not done yet.
     if ($force || !empty($this->settings['#_needs_processing'])) {
-      parent::processSettings($force);
+      parent::processSettings($force, $access_check);
       $this->process();
     }
   }
@@ -818,6 +827,7 @@ abstract class RulesAbstractPlugin extends RulesPlugin {
     if ($this->info['parameter']) {
       $state = $this->setUpState($args);
       module_invoke_all('rules_config_execute', $this);
+
       $this->evaluate($state);
       $return = $this->returnVariables($state);
     }
