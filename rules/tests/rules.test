@@ -775,7 +775,7 @@ class RulesIntegrationTestCase extends DrupalWebTestCase {
   }
 
   function setUp() {
-    parent::setUp('rules', 'rules_test', 'entity_metadata');
+    parent::setUp('rules', 'rules_test', 'entity_metadata', 'php');
     RulesLog::logger()->clear();
   }
 
@@ -853,7 +853,7 @@ class RulesIntegrationTestCase extends DrupalWebTestCase {
 
     watchdog('php', 'test %message', array('%message' => 'message'));
     $msg = drupal_get_messages();
-    $this->assertEqual($msg['status'][0], t('test %message', array('%message' => 'message')), 'Watchdog event occured and log entry properties can be used.');
+    $this->assertEqual(array_pop($msg['status']), t('test %message', array('%message' => 'message')), 'Watchdog event occured and log entry properties can be used.');
   }
 
   function testListActions() {
@@ -915,4 +915,18 @@ class RulesIntegrationTestCase extends DrupalWebTestCase {
     RulesLog::logger()->checkLog();
   }
 
+  function testPHPIntegration() {
+    $node = $this->drupalCreateNode(array('title' => 'foo'));
+    $rule = rule(array('var_name' => array('type' => 'node')));
+    $rule->condition('php_eval', array('code' => 'return TRUE;'))
+         ->action('php_eval', array('code' => 'drupal_set_message("Executed-" . $var_name->title);'))
+         ->action('drupal_message', array('message' => 'Title: <? echo $var_name->title; ?>'));
+
+    $rule->execute($node);
+    $rule->access();
+    RulesLog::logger()->checkLog();
+    $msg = drupal_get_messages();
+    $this->assertEqual(array_pop($msg['status']), "Title: foo", 'PHP input evaluation has been applied.');
+    $this->assertEqual(array_pop($msg['status']), "Executed-foo", 'PHP code condition and action have been evaluated.');
+  }
 }

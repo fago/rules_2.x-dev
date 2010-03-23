@@ -50,7 +50,7 @@ class RulesDataInputEvalProcessor extends RulesDataProcessor {
    */
   public static function prepareValue(&$value, $param_info, $var_info = array()) {
     if (self::evaluators($param_info)) {
-      $processor = new RulesDataInputEvalProcessor($value, $param_info, $var_info = array());
+      $processor = new RulesDataInputEvalProcessor($value, $param_info, $var_info);
       if ($processor->usedVars) {
         // An input evaluator has been used, so the value needs processing.
         $value = $processor;

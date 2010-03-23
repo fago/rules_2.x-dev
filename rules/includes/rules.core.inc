@@ -541,7 +541,7 @@ abstract class RulesPlugin extends RulesExtendable {
     elseif (($var = $state->get($name)) !== NULL) {
       $arg = $var;
     }
-    elseif (empty($info['optional'])) {
+    elseif (empty($info['optional']) && $info['type'] != 'hidden') {
       throw new RulesException('Required parameter %name is missing.', array('%name' => $name), $this);
     }
     else {

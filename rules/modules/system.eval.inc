@@ -82,7 +82,7 @@ function _rules_action_drupal_goto_handler($variables) {
 /**
  * A class implementing a rules input evaluator processing tokens.
  */
-class RulesTokenProcessor implements RulesDataInputEvalProcessorInterface {
+class RulesTokenEvaluator implements RulesDataInputEvalProcessorInterface {
 
   public static function prepare($text, $var_info) {
     if ($scan = token_scan($text)) {
