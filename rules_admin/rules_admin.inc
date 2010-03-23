@@ -105,6 +105,7 @@ function rules_admin_add_reaction_rule($form, &$form_state) {
   unset($form['elements']);
   unset($form['conditions']);
   unset($form['add']);
+  unset($form['events']);
   $form['submit']['#submit'] = array('rules_admin_add_reaction_rule_submit');
 
   $form_state += array('rules_config' => $rules_config);
@@ -113,21 +114,10 @@ function rules_admin_add_reaction_rule($form, &$form_state) {
 }
 
 /**
- * Form validation callback.
+ * Form add reaction_rule submit callback.
  */
 function rules_admin_add_reaction_rule_submit($form, &$form_state) {
   $rules_config = $form_state['rules_config'];
   $rules_config->form_submit($form, $form_state);
-  //firep(RULES_ADMIN_REACION_PATH . '/' . $rules_config->name . '/events');
-  //TODO: redirect to the 'select events' form
-  //$form_state['redirect'] = RULES_ADMIN_REACION_PATH . '/' . $rules_config->name . '/events';
-  $form_state['redirect'] = RULES_UI_RULE_PATH . '/' . $rules_config->name . '/events';
-}
-
-/**
- * Add events form after adding a rules_config
- */
-function rules_admin_add_events_reaction_rule($form, &$form_state, $rules_config) {
-  $rules_config->form($form, &$form_state, array());
-  return $form;
+  $form_state['redirect'] = RulesPluginUI::path($rules_config->name, 'add/event');
 }

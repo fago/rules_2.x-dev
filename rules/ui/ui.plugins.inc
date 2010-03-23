@@ -63,7 +63,7 @@ class RulesReactionRuleUI extends RulesRuleUI {
     foreach($this->rule->events() as $event_name) {
       $events[$event_name] = array(
         check_plain($event_info[$event_name]['label']),
-        '<span class="rules_rule_event">' . l(t('delete'), RULES_UI_RULE_PATH) . '</span>',
+        '<span class="rules_rule_event">' . l(t('delete'),  RulesPluginUI::path($this->rule->name, 'event/delete', $event_name)) . '</span>',
       );
     }
 

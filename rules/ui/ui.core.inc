@@ -618,7 +618,7 @@ class RulesConditionContainerUI extends RulesContainerPluginUI {
 class RulesActionContainerUI extends RulesContainerPluginUI {
 
   public function form(&$form, &$form_state, $options = array(), $iterator = NULL) {
-    parent::form($form, $form_state, $options, $iterator);
+    parent::form($form,  $form_state, $options, $iterator);
     // Add the add-* operation links.
     $form['add'] = self::addOperations();
     $form['elements']['#attributes']['class'][] = 'rules-action-container';

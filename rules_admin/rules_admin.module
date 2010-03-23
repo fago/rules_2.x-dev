@@ -36,16 +36,6 @@ function rules_admin_menu() {
     'file' => 'rules_admin.inc',
     'weight' => 0,
   );
-  $items[RULES_ADMIN_REACION_PATH . '/%rules_config/events'] = array(
-    'title callback' => 'rules_get_title',
-    'title arguments' => array('Editing @plugin "@label"', 5),
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('rules_admin_add_events_reaction_rule', 5),
-    'access arguments' => array('administer rules'),
-    'type' => MENU_CALLBACK,
-    'file' => 'rules_admin.inc',
-    'weight' => 0,
-  );
   $items[RULES_ADMIN_COMPONENT_PATH] = array(
     'title' => 'Components',
     'page callback' => 'drupal_get_form',
