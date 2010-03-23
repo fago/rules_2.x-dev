@@ -353,6 +353,19 @@ class RulesTestCase extends DrupalWebTestCase {
    * Test using loops.
    */
   function testLoops() {
+    // Test passing the list parameter as argument to ensure that is working
+    // generally for plugin container too.
+    $loop = rules_loop();
+    $loop->action('drupal_message', array('message' => 'test'));
+    $arg_info = $loop->argumentInfo();
+    $this->assert($arg_info['list']['type'] == 'list', 'Argument info contains list.');
+    $loop->execute(array(1, 2));
+
+    // Ensure the action has been executed twice, once for each list item.
+    $msg = drupal_get_messages();
+    $this->assert($msg['status'][0] == 'test' && $msg['status'][1], 'Loop has been properly executed');
+
+    // Now test looping over nodes.
     $node1 = $this->drupalCreateNode(array('type' => 'page', 'sticky' => 0));
     $node2 = $this->drupalCreateNode(array('type' => 'page', 'sticky' => 0));
     $node3 = $this->drupalCreateNode(array('type' => 'page', 'sticky' => 0));
@@ -419,12 +432,8 @@ class RulesTestCase extends DrupalWebTestCase {
 
     RulesLog::logger()->checkLog();
     $msg = drupal_get_messages();
-    $this->assertEqual(array_pop($msg['status']), 'Title: ' . check_plain('<b>The body & nothing.</b>'), 'Data selector for getting parameter applied.');
+    $this->assertEqual(array_pop($msg['status']), 'Title: ' . check_plain('<b>The body & nothing.</b>'), 'Token input evaluator applied.');
   }
-
-
-
-
 
 
   function testRuleBuilding() {

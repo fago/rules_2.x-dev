@@ -1072,9 +1072,9 @@ abstract class RulesContainerPlugin extends RulesPlugin implements IteratorAggre
 
   public function argumentInfo() {
     if (isset($this->info['variables'])) {
-      return rules_filter_array($this->info['variables'], 'handler', FALSE);
+      return parent::argumentInfo() + rules_filter_array($this->info['variables'], 'handler', FALSE);
     }
-    return array();
+    return parent::argumentInfo();
   }
 
   public function availableVariables() {
@@ -1093,7 +1093,7 @@ abstract class RulesContainerPlugin extends RulesPlugin implements IteratorAggre
   }
 
   protected function setUpVariables() {
-    return isset($this->info['variables']) ? $this->info['variables'] : array();
+    return parent::argumentInfo() + (isset($this->info['variables']) ? $this->info['variables'] : array());
   }
 
   /**

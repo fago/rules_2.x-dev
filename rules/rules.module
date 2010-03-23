@@ -91,8 +91,8 @@ function rules_and($variables = NULL) {
 /**
  * Creates a loop.
  *
- * @param $info
- *   Info about the loop containing
+ * @param $settings
+ *   The loop settings, containing
  *     'list:select': The data selector for the list to loop over.
  *     'item:var': Optionally a name for the list item variable.
  *     'item:label': Optionally a lebel for the list item variable.
@@ -100,8 +100,8 @@ function rules_and($variables = NULL) {
  *   An optional array as for rule().
  * @return RulesLoop
  */
-function rules_loop($info = array(), $variables = NULL) {
-  return rules_plugin_factory('loop', $info, $variables);
+function rules_loop($settings = array(), $variables = NULL) {
+  return rules_plugin_factory('loop', $settings, $variables);
 }
 
 /**

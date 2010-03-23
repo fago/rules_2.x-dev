@@ -371,7 +371,9 @@ class RulesLoop extends RulesActionContainer {
     $list_var = $this->getArgument('list', $this->parameter['list'], $state);
     $item_info = $this->listItemInfo();
     $name = $this->settings['item:var'];
-    rules_log('Looping over the list items of %selector', array('%selector' => $this->settings['list:select']));
+    if (isset($this->settings['list:select'])) {
+      rules_log('Looping over the list items of %selector', array('%selector' => $this->settings['list:select']));
+    }
 
     // Loop over the list and evaluate the children for each list item.
     foreach ($list_var as $key => $item_value) {
