@@ -15,157 +15,115 @@
 abstract class RulesDataProcessor {
 
   /**
-   * Gets the processed value.
-   *
-   * @param $info
-   *   Info about the parameter for which we get the argument value for.
-   * @param $state RulesState
-   *   The rules evaluation state.
-   * @param $element RulesPlugin
-   *   The element for which we get the argument for.
-   * @return
-   *   The processed value.
+   * The processors' setting value.
    */
-  abstract public function value($info, RulesState $state, $element);
+  protected $setting = NULL;
 
   /**
-   * Return whether the current user has permission to use the processor.
+   * Allows chaining processors. If set, the next processor to invoke.
    */
-  abstract static function access();
+  protected $processor = NULL;
+
+  /**
+   * Constructor.
+   */
+  protected function __construct($setting, $param_info, $var_info = array(), $processor = NULL) {
+    $this->setting = $setting;
+    $this->processor = $processor;
+  }
+
+  /**
+   * Return $this or skip this processor by returning the next processor.
+   */
+  protected function getPreparedValue() {
+    return isset($this->setting) && array_filter($this->setting) ? $this : $this->processor;
+  }
 
   /**
    * Returns whether the current user has permission to edit this instance of
    * the data processor.
    */
   public function editAccess() {
-    // Call the static access() method by default.
-    return $this->access();
-  }
-}
-
-/**
- * A processor for applying Rules input evaluators.
- */
-class RulesDataInputEvalProcessor extends RulesDataProcessor {
-
-  protected $value, $usedVars = array();
-
-  public static function access() {
-    return TRUE;
+    return self::access() && (!isset($this->processor) || $this->processor->editAccess());
   }
 
-  public function editAccess() {
-    foreach ($this->usedVars as $base => $data) {
-      if (!call_user_func(array($base, 'access'))) {
-        return FALSE;
-      }
-    }
-    return TRUE;
-  }
 
   /**
-   * Returns the prepared value to store, which is either the unprocessed value
-   * if nothing to do or a RulesDataProcessor object so processing is invoked on
-   * evaluation time.
+   * Prepares the processor for parameters.
    *
-   * @param $value
-   *   The value to be processed.
+   * It turns the settings into a suiting processor object, which gets invoked
+   * on evaluation time.
+   *
+   * @param $setting
+   *   The processor settings which are to be prepared.
    * @param $param_info
-   *   The info about the parameter to prepare the value for.
+   *   The info about the parameter to prepare the processor for.
    * @param $var_info
    *   An array of info about the available variables.
    * @param $access_check
-   *   Whether only accessible input evaluators should be taken into account.
+   *   Whether access checks for the processors hould be performed.
    */
-  public static function prepareValue(&$value, $param_info, $var_info = array(), $access_check = TRUE) {
-    if (self::evaluators($param_info, $access_check)) {
-      $processor = new RulesDataInputEvalProcessor($value, $param_info, $var_info, $access_check);
-      if ($processor->usedVars) {
-        // An input evaluator has been used, so the value needs processing.
-        $value = $processor;
+  public static function prepareSetting(&$setting, $param_info, $var_info = array(), $access_check = TRUE) {
+    $processor = NULL;
+    foreach (self::processors($param_info, $access_check) as $name => $info) {
+      if (!empty($setting[$name])) {
+        $object = new $info['class']($setting[$name], $param_info, $var_info, $processor);
+        $processor = $object->getPreparedValue();
       }
     }
-  }
-
-  protected function __construct($value, $param_info, $var_info = array(), $access_check = TRUE) {
-    $this->value = $value;
-    $this->prepare($param_info, $var_info, $access_check);
-  }
-
-  protected function prepare($param_info, $var_info, $access_check) {
-    foreach (self::evaluators($param_info, $access_check) as $base => $info) {
-      $data = call_user_func(array($base, 'prepare'), $this->value, $var_info);
-      if (isset($data)) {
-        $this->usedVars[$base] = $data;
-      }
-    }
-  }
-
-  public function unprocessedValue() {
-    return $this->value;
-  }
-
-  public function __toString() {
-    return $this->value;
-  }
-
-  public function value($info, RulesState $state, $element) {
-    $value = $this->value;
-    $cache = rules_get_cache();
-    $options = array_filter(array(
-      'language' => isset($element->settings['language']) ? $element->settings['language'] : NULL,
-      'callback' => isset($cache['data info'][$info['type']]['cleaning callback']) ? $cache['data info'][$info['type']]['cleaning callback'] : FALSE,
-      'sanitize' => !empty($info['sanitize']),
-    ));
-
-    foreach ($this->usedVars as $base => $data) {
-      $value = call_user_func(array($base, 'value'), $value, $data, $options, $state);
-    }
-    return $value;
+    $setting = $processor;
   }
 
   /**
-   * @return
-   *   A renderable array of help.
+   * Attaches the form of applicable data processors.
    */
-  public static function help(&$form, $param_info, $var_info, $access_check = TRUE) {
-    foreach (self::evaluators($param_info, $access_check) as $base => $info) {
-      $form['help'][$base] = call_user_func(array($base, 'help'), $var_info);
-      $form['help'][$base]['#weight'] = $info['weight'];
+  public static function attachForm(&$form, $settings, $param_info, $var_info, $access_check = TRUE) {
+    // If $settings is already prepared get the settings from the processors.
+    if ($settings instanceof RulesDataProcessor) {
+      while ($settings instanceof RulesDataProcessor) {
+        $processors[get_class($settings)] = $settings;
+        $settings = $settings->processor;
+      }
+      $settings = array();
+    }
+    foreach (self::processors($param_info, $access_check) as $name => $info) {
+      $settings += array($name => array());
+      $settings[$name] = isset($processors[$info['class']]) ? $processors[$info['class']]->getSetting() : $settings[$name];
+      $form[$name] = call_user_func(array($info['class'], 'form'), $settings[$name], $var_info);
+      $form[$name]['#weight'] = $info['weight'];
     }
   }
 
-
   /**
-   * Returns all input evaluators that can be applied to the parameters needed
-   * type.
+   * Returns defined data processors applicable for the given parameter.
+   * Optionally also access to the processors is checked.
    */
-  public static function evaluators($param_info, $access_check = TRUE) {
-    static $evaluators = array();
+  public static function processors($param_info, $access_check = TRUE, $hook = 'data_processor_info') {
+    static $items = array();
 
-    if (!isset($evaluators['all'])) {
-      $evaluators['all'] = rules_fetch_data('evaluator_info');
-      uasort($evaluators['all'], array(__CLASS__, '_evaluator_sort'));
+    if (!isset($items[$hook]['all'])) {
+      $items[$hook]['all'] = rules_fetch_data($hook);
+      uasort($items[$hook]['all'], array(__CLASS__, '_item_sort'));
     }
-    // Input mode isn't supported for multiple types.
+    // Data processing isn't supported for multiple types.
     if (is_array($param_info['type'])) {
       return array();
     }
-    // Filter the evaluators by type.
-    if (!isset($evaluators[$param_info['type']])) {
-      $evaluators[$param_info['type']] = array();
-      foreach ($evaluators['all'] as $name => $info) {
+    // Filter the items by type.
+    if (!isset($items[$hook][$param_info['type']])) {
+      $items[$hook][$param_info['type']] = array();
+      foreach ($items[$hook]['all'] as $name => $info) {
         // Check whether the parameter type matches the supported types.
         if (RulesData::typesMatch($param_info, $info)) {
-          $evaluators[$param_info['type']][$name] = $info;
+          $items[$hook][$param_info['type']][$name] = $info;
         }
       }
     }
     // Apply the access check.
-    $return = $evaluators[$param_info['type']];
+    $return = $items[$hook][$param_info['type']];
     if ($access_check) {
       foreach ($return as $base => $info) {
-        if (!call_user_func(array($base, 'access'))) {
+        if (!call_user_func(array($info['class'], 'access'))) {
           unset($return[$base]);
         }
       }
@@ -173,42 +131,137 @@ class RulesDataInputEvalProcessor extends RulesDataProcessor {
     return $return;
   }
 
-  public static function _evaluator_sort($a, $b) {
+  public static function _item_sort($a, $b) {
     return $a['weight'] < $b['weight'] ? -1 : ($a['weight'] > $b['weight'] ? 1 : 0);
   }
+
+  public function getSetting() {
+    return $this->setting;
+  }
+
+  /**
+   * Processes the value. If $this->processor is set, invoke this processor
+   * first so chaining multiple processors is working.
+   *
+   * @param $value
+   *   The value to process.
+   * @param $info
+   *   Info about the parameter for which we process the value.
+   * @param $state RulesState
+   *   The rules evaluation state.
+   * @param $element RulesPlugin
+   *   The element for which we process the value.
+   * @return
+   *   The processed value.
+   */
+  abstract public function process($value, $info, RulesState $state, RulesPlugin $element);
+
+  /**
+   * Return whether the current user has permission to use the processor.
+   */
+  abstract public static function access();
+
+  /**
+   * Defines the processor form element.
+   *
+   * @return
+   *   A form element structure.
+   */
+  abstract protected static function form($settings, $var_info);
 }
 
 /**
- * A common interface for rules input evaluators.
+ * A processor for applying Rules input evaluators. This processor is special
+ * as it's not listed in hook_rules_data_processor_info(), but gets attached
+ * explicitly to input forms.
  */
-interface RulesDataInputEvalProcessorInterface {
+abstract class RulesDataInputEvaluator extends RulesDataProcessor {
 
   /**
-   * Returns whether the current user has permission to use the input evaluator.
+   * Overridden to invoke prepare().
    */
-  public static function access();
+  protected function __construct($setting, $param_info, $var_info = array(), $processor = NULL) {
+    $this->setting = TRUE;
+    $this->processor = $processor;
+    $this->prepare($setting, $var_info);
+  }
+
+  /**
+   * Overridden to generate evaluator $options and invoke evaluate().
+   */
+  public function process($value, $info, RulesState $state, RulesPlugin $element, $options = NULL) {
+    if (!isset($options)) {
+      $cache = rules_get_cache();
+      $options = array_filter(array(
+        'language' => isset($element->settings['language']) ? $element->settings['language'] : NULL,
+        'callback' => isset($cache['data info'][$info['type']]['cleaning callback']) ? $cache['data info'][$info['type']]['cleaning callback'] : FALSE,
+        'sanitize' => !empty($info['sanitize']),
+      ));
+    }
+    $value = isset($this->processor) ? $this->processor->process($value, $info, $state, $element, $options) : $value;
+    return $this->evaluate($value, $options, $state);
+  }
+
+  /**
+   * Overriden to prepare input evaluator processors. The setting is expected
+   * to be the input value to be evaluated later on and is replaced by the
+   * suiting processor.
+   */
+  public static function prepareSetting(&$setting, $param_info, $var_info = array(), $access_check = TRUE) {
+    $processor = NULL;
+    foreach (self::evaluators($param_info, $access_check) as $name => $info) {
+      $object = new $info['class']($setting, $param_info, $var_info, $processor);
+      $processor = $object->getPreparedValue();
+    }
+    $setting = $processor;
+  }
+
+  protected function getPreparedValue() {
+    return isset($this->setting) ? $this : $this->processor;
+  }
+
+  /**
+   * Overriden to just attach the help() of evaluators.
+   */
+  public static function attachForm(&$form, $settings, $param_info, $var_info, $access_check = TRUE) {
+    foreach (self::evaluators($param_info, $access_check) as $name => $info) {
+      $form['help'][$name] = call_user_func(array($info['class'], 'help'), $var_info);
+      $form['help'][$name]['#weight'] = $info['weight'];
+    }
+  }
+
+  /**
+   * This won't be used as attachForm() is overridden, but has to implemented.
+   */
+  protected static function form($settings, $var_info) {
+
+  }
+
+  /**
+   * Returns all input evaluators that can be applied to the parameters needed
+   * type.
+   */
+  public static function evaluators($param_info, $access_check = TRUE) {
+    return parent::processors($param_info, $access_check, 'evaluator_info');
+  }
+
 
   /**
    * Prepares the evalution, e.g. to determine whether the input evaluator has
-   * been used.
+   * been used. If this evaluator should be skipped just unset $this->setting.
    *
    * @param $text
    *   The text to evaluate later on.
    * @param $variables
    *   An array of info about available variables.
-   * @return
-   *     Arbitrary data, which is passed to the evaluator on evaluation.
-   *     If NULL is returned the input evaluator will be skipped later.
    */
-  public static function prepare($text, $variables);
+  abstract public function prepare($text, $variables);
 
   /**
    * Apply the input evaluator.
    *
    * @param $text
    *   The text to evaluate.
-   * @param $data
-   *   The data as returned from the preparation step.
    * @param $options
    *   A keyed array of settings and flags to control the processing.
    *   Supported options are:
@@ -223,7 +276,7 @@ interface RulesDataInputEvalProcessorInterface {
    * @return
    *   The evaluated text.
    */
-  public static function value($text, $data, $options, RulesState $state);
+  abstract public function evaluate($text, $options, RulesState $state);
 
   /**
    * Provide some usage help for the evaluator.
@@ -233,7 +286,6 @@ interface RulesDataInputEvalProcessorInterface {
    * @return
    *   A renderable array.
    */
-  public static function help($variables);
+  abstract public static function help($variables);
+
 }
-
-

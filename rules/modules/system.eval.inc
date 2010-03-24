@@ -82,16 +82,15 @@ function _rules_action_drupal_goto_handler($variables) {
 /**
  * A class implementing a rules input evaluator processing tokens.
  */
-class RulesTokenEvaluator implements RulesDataInputEvalProcessorInterface {
+class RulesTokenEvaluator extends RulesDataInputEvaluator {
 
   public static function access() {
     return TRUE;
   }
 
-  public static function prepare($text, $var_info) {
-    if ($scan = token_scan($text)) {
-      return TRUE;
-    }
+  public function prepare($text, $var_info) {
+    // Skip this evaluator if there are no tokens.
+    $this->setting = token_scan($text) ? TRUE : NULL;
   }
 
   /**
@@ -101,7 +100,7 @@ class RulesTokenEvaluator implements RulesDataInputEvalProcessorInterface {
    * So we properly map variable names to variable data types and then run the
    * replacement ourself.
    */
-  public static function value($text, $data, $options, RulesState $state) {
+  public function evaluate($text, $options, RulesState $state) {
     $var_info = $state->varInfo();
     $options += array('sanitize' => FALSE);
 
@@ -133,7 +132,7 @@ class RulesTokenEvaluator implements RulesDataInputEvalProcessorInterface {
       '#type' => 'fieldset',
       '#title' => t('Replacement patterns'),
       '#collapsible' => TRUE,
-      '#collapsed' => FALSE,
+      '#collapsed' => TRUE,
     );
     $token_info = token_info();
 

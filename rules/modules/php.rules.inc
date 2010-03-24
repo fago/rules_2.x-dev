@@ -20,11 +20,24 @@ function rules_php_file_info() {
  */
 function rules_php_evaluator_info() {
   return array(
-    'RulesPHPEvaluator' => array(
-      'label' => t('PHP Evaluation'),
+    'php' => array(
+      'class' => 'RulesPHPEvaluator',
       'type' => 'text',
       'weight' => -10,
-     ),
+    ),
+  );
+}
+
+/**
+ * Implements hook_rules_data_processor_info() on behalf of the php module.
+ */
+function rules_php_data_processor_info() {
+  return array(
+    'php' => array(
+      'class' => 'RulesPHPDataProcessor',
+      'type' => array('text', 'decimal', 'integer', 'date', 'duration', 'boolean', 'uri'),
+      'weight' => 10,
+    ),
   );
 }
 
@@ -54,7 +67,7 @@ function rules_php_action_info() {
  * Process the settings to prepare code execution.
  */
 function rules_execute_php_eval_process(RulesAbstractPlugin $element) {
-  $element_info['parameter']['used_vars']['default value'] = RulesPHPEvaluator::prepare('<?' . $element->settings['code'], $element->availableVariables());
+  $element_info['parameter']['used_vars']['default value'] = RulesPHPEvaluator::getUsedVars('<?' . $element->settings['code'], $element->availableVariables());
   $element->alterInfo($element_info);
 }
 

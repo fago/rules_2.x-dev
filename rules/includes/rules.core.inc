@@ -472,11 +472,20 @@ abstract class RulesPlugin extends RulesExtendable {
   public function processSettings($force = FALSE, $access_check = FALSE) {
     // Process if not done yet.
     if ($force || !empty($this->settings['#_needs_processing'])) {
-      // Care for input evaluators.
       $var_info = $this->availableVariables();
       foreach ($this->parameterInfo() as $name => $info) {
+        // Prepare input evaluators.
         if (isset($this->settings[$name])) {
-          RulesDataInputEvalProcessor::prepareValue($this->settings[$name], $info, $var_info, $access_check);
+          $this->settings[$name . ':process'] = $this->settings[$name];
+          RulesDataInputEvaluator::prepareSetting($this->settings[$name . ':process'], $info, $var_info, $access_check);
+        }
+        // Prepare data processors.
+        elseif (isset($this->settings[$name . ':select']) && !empty($this->settings[$name . ':process'])) {
+          RulesDataProcessor::prepareSetting($this->settings[$name . ':process'], $info, $var_info, $access_check);
+        }
+        // Clean up.
+        if (empty($this->settings[$name . ':process'])) {
+          unset($this->settings[$name . ':process']);
         }
       }
       unset($this->settings['#_needs_processing']);
@@ -542,9 +551,16 @@ abstract class RulesPlugin extends RulesExtendable {
         throw new RulesException('Unable to apply data selector %selector.', array('%selector' => $this->settings[$name . ':select']), $this);
       }
       $arg = $wrapper;
+      if (!empty($this->settings[$name . ':process'])) {
+        // For processing first unwrap the data.
+        $unwrapped = reset(rules_unwrap_data(array($wrapper), array($info)));
+        $arg = $this->settings[$name . ':process']->process($unwrapped, $info, $state, $this);
+        unset($info['sanitize']);
+      }
     }
     elseif (isset($this->settings[$name])) {
-      $arg = $this->settings[$name] instanceof RulesDataProcessor ? $this->settings[$name]->value($info, $state, $this) : $this->settings[$name];
+      $arg = !empty($this->settings[$name . ':process']) ? $this->settings[$name . ':process']->process($this->settings[$name], $info, $state, $this) : $this->settings[$name];
+      // We don't sanitize values directly inputted by users.
       unset($info['sanitize']);
     }
     elseif (($var = $state->get($name)) !== NULL) {

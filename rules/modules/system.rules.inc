@@ -142,8 +142,8 @@ function rules_system_integration_access($type, $name) {
  */
 function rules_system_evaluator_info() {
   return array(
-    'RulesTokenEvaluator' => array(
-      'label' => t('Token replacement patterns'),
+    'token' => array(
+      'class' => 'RulesTokenEvaluator',
       'type' => 'text',
       'weight' => 0,
      ),
