@@ -90,8 +90,13 @@ function rules_admin_components_overview($form, &$form_state) {
  * Define the rule settings
  */
 function rules_admin_settings($form, &$form_state) {
-  drupal_set_message("Rules admin settings");
-  return $form;
+  $form['rules_debug'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Debug rules evaluation'),
+    '#default_value' => FALSE,
+    '#description' => t('If activated debugging information is shown when rules are evaluated.'),
+  );
+  return system_settings_form($form, TRUE);
 }
 
 /**
@@ -102,14 +107,10 @@ function rules_admin_add_reaction_rule($form, &$form_state) {
   $rules_config->form($form, $form_state, array('show settings' => true, 'button' => TRUE));
 
   $form['settings']['#collapsible'] = FALSE;
-  unset($form['elements']);
-  unset($form['conditions']);
-  unset($form['add']);
-  unset($form['events']);
-  $form['submit']['#submit'] = array('rules_admin_add_reaction_rule_submit');
+  unset($form['elements'], $form['conditions'], $form['add'], $form['events']);
 
+  $form['#submit'] = array('rules_admin_add_reaction_rule_submit');
   $form_state += array('rules_config' => $rules_config);
-
   return $form;
 }
 
