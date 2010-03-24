@@ -287,19 +287,13 @@ class RulesPluginUI extends FacesExtender implements RulesPluginUIInterface {
       '#title' => 'Label',
       '#default_value' => $this->element->label(),
       '#required' => TRUE,
-    );
-    $form['settings']['weight'] = array(
-      '#type' => 'weight',
-      '#title' => t('Weight'),
-      '#default_value' => $this->element->weight,
-      '#delta' => 10,
+      '#weight' => -5,
     );
     // TODO: Attach field form thus description and tags.
   }
 
   public function settingsFormExtractValues($form, &$form_state) {
     $this->element->label = $form_state['values']['label'];
-    $this->element->weight = $form_state['values']['weight'];
   }
 
   public function settingsFormValidate($form, &$form_state) {

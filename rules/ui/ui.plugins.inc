@@ -89,6 +89,33 @@ class RulesReactionRuleUI extends RulesRuleUI {
 
     parent::form($form, $form_state, $options);
   }
+
+  /**
+   * Adds the configuration settings form (label, tags, description, ..).
+   */
+  public function settingsForm(&$form, &$form_state) {
+    parent::settingsForm($form, $form_state);
+    $form['settings']['active'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('Active'),
+      '#description' => t('If checked the reaction rule will be triggered when the configured events occur.'),
+      '#default_value' => !isset($this->rule->active) || $this->rule->active,
+    );
+    $form['settings']['weight'] = array(
+      '#type' => 'weight',
+      '#title' => t('Weight'),
+      '#default_value' => $this->element->weight,
+      '#weight' => 5,
+      '#delta' => 10,
+      '#description' => t('Adjust the weight to influence the evaluation order of rules reacting on the same event.'),
+    );
+  }
+
+  public function settingsFormExtractValues($form, &$form_state) {
+    parent::settingsFormExtractValues($form, $form_state);
+    $this->rule->active = $form_state['values']['active'];
+    $this->rule->weight = $form_state['values']['weight'];
+  }
 }
 
 /**
