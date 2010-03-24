@@ -920,13 +920,28 @@ class RulesIntegrationTestCase extends DrupalWebTestCase {
     $rule = rule(array('var_name' => array('type' => 'node')));
     $rule->condition('php_eval', array('code' => 'return TRUE;'))
          ->action('php_eval', array('code' => 'drupal_set_message("Executed-" . $var_name->title);'))
-         ->action('drupal_message', array('message' => 'Title: <? echo $var_name->title; ?>'));
+         ->action('drupal_message', array('message' => 'Title: <? echo $var_name->title; ?> Token: [var_name:title]'));
 
     $rule->execute($node);
     $rule->access();
     RulesLog::logger()->checkLog();
     $msg = drupal_get_messages();
-    $this->assertEqual(array_pop($msg['status']), "Title: foo", 'PHP input evaluation has been applied.');
+    $this->assertEqual(array_pop($msg['status']), "Title: foo Token: foo", 'PHP input evaluation has been applied.');
     $this->assertEqual(array_pop($msg['status']), "Executed-foo", 'PHP code condition and action have been evaluated.');
+
+    // Test PHP data processor
+    $rule = rule(array('var_name' => array('type' => 'node')));
+    $rule->action('drupal_message', array(
+      'message:select' => 'var_name:title',
+      'message:process' => array(
+        'php' => array('code' => 'return "Title: $value";')
+      ),
+    ));
+    $rule->execute($node);
+    $rule->access();
+    RulesLog::logger()->checkLog();
+    $msg = drupal_get_messages();
+    $this->pass(RulesLog::logger()->render());
+    $this->assertEqual(array_pop($msg['status']), "Title: foo", 'PHP data processor has been applied.');
   }
 }
