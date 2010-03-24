@@ -91,8 +91,8 @@ function rules_and($variables = NULL) {
 /**
  * Creates a loop.
  *
- * @param $info
- *   Info about the loop containing
+ * @param $settings
+ *   The loop settings, containing
  *     'list:select': The data selector for the list to loop over.
  *     'item:var': Optionally a name for the list item variable.
  *     'item:label': Optionally a lebel for the list item variable.
@@ -100,8 +100,8 @@ function rules_and($variables = NULL) {
  *   An optional array as for rule().
  * @return RulesLoop
  */
-function rules_loop($info = array(), $variables = NULL) {
-  return rules_plugin_factory('loop', $info, $variables);
+function rules_loop($settings = array(), $variables = NULL) {
+  return rules_plugin_factory('loop', $settings, $variables);
 }
 
 /**
@@ -279,8 +279,6 @@ function &rules_wrap_data(&$data = NULL, $info, $force = FALSE) {
  *   An array containing unwrapped or passed through data.
  */
 function rules_unwrap_data(array $data, $info = array()) {
-  //TODO: support a method for getting sanitized values of text wrappers,
-  // so tokens can make use of it.
   foreach ($data as $key => $entry) {
     // If it's a wrapper, unwrap.
     if ($entry instanceof EntityMetadataWrapper) {
@@ -425,12 +423,18 @@ function rules_entity_info() {
  * Implementation of hook_hook_info().
  */
 function rules_hook_info() {
-  foreach(array('plugin_info', 'data_info', 'condition_info', 'action_info', 'event_info', 'file_info') as $hook) {
+  foreach(array('plugin_info', 'data_info', 'condition_info', 'action_info', 'event_info', 'file_info', 'evaluator_info', 'data_processor_info') as $hook) {
     $hooks['rules_' . $hook] = array(
+      'group' => 'rules',
+    );
+    $hooks['rules_' . $hook . '_alter'] = array(
       'group' => 'rules',
     );
   }
   $hooks['default_rules_configuration'] = array(
+    'group' => 'rules_defaults',
+  );
+  $hooks['default_rules_configuration_alter'] = array(
     'group' => 'rules_defaults',
   );
   return $hooks;
@@ -664,6 +668,16 @@ function rules_theme() {
   );
 }
 
+/**
+ * Implements hook_permission().
+ */
+function rules_permission() {
+  return array(
+    'administer rules' => array(
+      'title' => t('Administer rule configurations'),
+    ),
+  );
+}
 
 /**
  * Implements hook_menu().

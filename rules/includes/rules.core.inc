@@ -441,15 +441,55 @@ abstract class RulesPlugin extends RulesExtendable {
    * this configuration.
    */
   public function access() {
+    $this->processSettings();
     foreach ($this->info['parameter'] as $name => $info) {
       if (isset($this->settings[$name . ':select']) && $wrapper = $this->applyDataSelector($this->settings[$name . ':select'])) {
         if ($wrapper->access('view') === FALSE) {
           return FALSE;
         }
-        //TODO: Check input evaluator access.
+        if ($this->settings[$name . ':select'] instanceof RulesDataProcessor && !$this->settings[$name . ':select']->editAccess()) {
+          return FALSE;
+        }
+      }
+      elseif (isset($this->settings[$name]) && $this->settings[$name] instanceof RulesDataProcessor && !$this->settings[$name]->editAccess()) {
+        return FALSE;
       }
     }
     return TRUE;
+  }
+
+  /**
+   * Processes the settings e.g. to prepare input evaluators.
+   *
+   * Usually settings get processed automatically, however if $this->settings
+   * has been altered manually after element construction, it needs to be
+   * invoked explicitly with $force set to TRUE.
+   *
+   * @param $access_check
+   *   Whether only input evaluators accessible to the current user should be
+   *   taken into account.
+   */
+  public function processSettings($force = FALSE, $access_check = FALSE) {
+    // Process if not done yet.
+    if ($force || !empty($this->settings['#_needs_processing'])) {
+      $var_info = $this->availableVariables();
+      foreach ($this->parameterInfo() as $name => $info) {
+        // Prepare input evaluators.
+        if (isset($this->settings[$name])) {
+          $this->settings[$name . ':process'] = $this->settings[$name];
+          RulesDataInputEvaluator::prepareSetting($this->settings[$name . ':process'], $info, $var_info, $access_check);
+        }
+        // Prepare data processors.
+        elseif (isset($this->settings[$name . ':select']) && !empty($this->settings[$name . ':process'])) {
+          RulesDataProcessor::prepareSetting($this->settings[$name . ':process'], $info, $var_info, $access_check);
+        }
+        // Clean up.
+        if (empty($this->settings[$name . ':process'])) {
+          unset($this->settings[$name . ':process']);
+        }
+      }
+      unset($this->settings['#_needs_processing']);
+    }
   }
 
   /**
@@ -459,7 +499,17 @@ abstract class RulesPlugin extends RulesExtendable {
    * @return RulesPlugin
    */
   public function integrityCheck() {
+    // First process the settings if not done yet.
+    $this->processSettings();
+
+    // Check the parameter settings.
     $this->checkParameterSettings();
+    // Check variable names for provided variabels to be valid.
+    foreach ($this->providesVariables() as $name => $info) {
+      if (isset($this->settings[$name . ':var'])) {
+        $this->checkVarName($this->settings[$name . ':var']);
+      }
+    }
     return $this;
   }
 
@@ -501,18 +551,27 @@ abstract class RulesPlugin extends RulesExtendable {
         throw new RulesException('Unable to apply data selector %selector.', array('%selector' => $this->settings[$name . ':select']), $this);
       }
       $arg = $wrapper;
+      if (!empty($this->settings[$name . ':process'])) {
+        // For processing first unwrap the data.
+        $unwrapped = reset(rules_unwrap_data(array($wrapper), array($info)));
+        $arg = $this->settings[$name . ':process']->process($unwrapped, $info, $state, $this);
+        unset($info['sanitize']);
+      }
     }
     elseif (isset($this->settings[$name])) {
-      $arg = $this->settings[$name];
+      $arg = !empty($this->settings[$name . ':process']) ? $this->settings[$name . ':process']->process($this->settings[$name], $info, $state, $this) : $this->settings[$name];
+      // We don't sanitize values directly inputted by users.
+      unset($info['sanitize']);
     }
     elseif (($var = $state->get($name)) !== NULL) {
       $arg = $var;
     }
-    elseif (empty($info['optional'])) {
+    elseif (empty($info['optional']) && $info['type'] != 'hidden') {
       throw new RulesException('Required parameter %name is missing.', array('%name' => $name), $this);
     }
     else {
       $arg = !empty($info['default value']) ? $info['default value'] : NULL;
+      unset($info['sanitize']);
     }
     // Support passing already sanitized values.
     if ($info['type'] == 'text' && !empty($info['sanitize']) && !($arg instanceof EntityMetadataWrapper)) {
@@ -608,6 +667,7 @@ abstract class RulesPlugin extends RulesExtendable {
   }
 
   function __sleep() {
+    $this->processSettings();
     $array = (isset($this->name)) ? array('name' => 'name') : array();
     // Keep the id always as we need it for the recursion prevention.
     return $array + drupal_map_assoc(array('skipSetUp', 'parent', 'id', 'weight', 'settings'));
@@ -748,7 +808,6 @@ abstract class RulesAbstractPlugin extends RulesPlugin {
   }
 
   public function access() {
-    $this->processSettings();
     $this->loadBasicInclude();
     if (!empty($this->info['access callback']) && !call_user_func($this->info['access callback'], $this->itemName, $this->getElementName())) {
       return FALSE;
@@ -757,24 +816,16 @@ abstract class RulesAbstractPlugin extends RulesPlugin {
   }
 
   public function integrityCheck() {
-    parent::integrityCheck();
-    // Check variable names to be valid.
-    foreach ($this->info['provides'] as $name => $info) {
-      if (isset($this->settings[$name . ':var'])) {
-        $this->checkVarName($this->settings[$name . ':var']);
-      }
-    }
-    // Also validate and process the concrete plugin's settings.
+    // Validate the concrete plugin's settings first.
     $this->validate();
-    $this->processSettings();
-    return $this;
+    return parent::integrityCheck();
   }
 
-  protected function processSettings() {
+  public function processSettings($force = FALSE, $access_check = FALSE) {
     // Process if not done yet.
-    if (!empty($this->settings['#_needs_processing'])) {
+    if ($force || !empty($this->settings['#_needs_processing'])) {
+      parent::processSettings($force, $access_check);
       $this->process();
-      unset($this->settings['#_needs_processing']);
     }
   }
 
@@ -794,6 +845,7 @@ abstract class RulesAbstractPlugin extends RulesPlugin {
     if ($this->info['parameter']) {
       $state = $this->setUpState($args);
       module_invoke_all('rules_config_execute', $this);
+
       $this->evaluate($state);
       $return = $this->returnVariables($state);
     }
@@ -1031,6 +1083,7 @@ abstract class RulesContainerPlugin extends RulesPlugin implements IteratorAggre
     if (!empty($this->info['variables']) && isset($this->parent)) {
       throw new RulesException('%plugin: Specifying state variables is not possible for child elements.', array('%plugin' => $this->getPluginName()), $this);
     }
+    parent::integrityCheck();
     foreach ($this->children as $child) {
       $child->integrityCheck();
     }
@@ -1047,9 +1100,9 @@ abstract class RulesContainerPlugin extends RulesPlugin implements IteratorAggre
 
   public function argumentInfo() {
     if (isset($this->info['variables'])) {
-      return rules_filter_array($this->info['variables'], 'handler', FALSE);
+      return parent::argumentInfo() + rules_filter_array($this->info['variables'], 'handler', FALSE);
     }
-    return array();
+    return parent::argumentInfo();
   }
 
   public function availableVariables() {
@@ -1068,7 +1121,7 @@ abstract class RulesContainerPlugin extends RulesPlugin implements IteratorAggre
   }
 
   protected function setUpVariables() {
-    return isset($this->info['variables']) ? $this->info['variables'] : array();
+    return parent::argumentInfo() + (isset($this->info['variables']) ? $this->info['variables'] : array());
   }
 
   /**
@@ -1088,8 +1141,10 @@ abstract class RulesContainerPlugin extends RulesPlugin implements IteratorAggre
   public function execute() {
     $replacements = array('%label' => isset($this->info['label']) ? $this->info['label'] : $this->name, '%plugin' => $this->itemName);
     rules_log('Executing %plugin %label.', $replacements, RulesLog::INFO, TRUE);
+    $this->processSettings();
     $state = $this->setUpState(func_get_args());
     module_invoke_all('rules_config_execute', $this);
+
     $result = $this->evaluate($state);
     $return = $this->returnVariables($state, $result);
     $state->cleanUp($this);

@@ -52,7 +52,7 @@ function rules_system_event_info() {
 function rules_system_data_info() {
   return array(
     'log_entry' => array(
-      'label' => t('system log entry'),
+      'label' => t('watchdog log entry'),
       'wrap' => TRUE,
       'data info' => _rules_system_watchdog_log_entry_info(),
     ),
@@ -114,7 +114,7 @@ function rules_system_action_info() {
           'default value' => FALSE,
         ),
       ),
-      'callbacks' => array('execute' => 'rules_action_drupal_message'),
+      'base' => 'rules_action_drupal_message',
       'access callback' => 'rules_system_integration_access',
     ),
     'redirect' => array(
@@ -135,6 +135,19 @@ function rules_system_action_info() {
  */
 function rules_system_integration_access($type, $name) {
   return user_access('administer site configuration');
+}
+
+/**
+ * Implements hook_rules_evaluator_info() on behalf of the system module.
+ */
+function rules_system_evaluator_info() {
+  return array(
+    'token' => array(
+      'class' => 'RulesTokenEvaluator',
+      'type' => 'text',
+      'weight' => 0,
+     ),
+  );
 }
 
 /**

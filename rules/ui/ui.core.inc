@@ -99,6 +99,11 @@ class RulesPluginUI extends FacesExtender implements RulesPluginUIInterface {
    */
   public function form(&$form, &$form_state, $options = array()) {
     $data_info = rules_fetch_data('data_info');
+    // We use $form_state['element_settings'] to store the settings of both
+    // parameter modes. That way one can switch between the parameter modes
+    // without loosing the settings of those.
+    $form_state += array('element_settings' => $this->element->settings);
+    $settings = $this->element->settings + $form_state['element_settings'];
 
     $form['parameter'] = array(
       '#type' => 'container',
@@ -107,8 +112,7 @@ class RulesPluginUI extends FacesExtender implements RulesPluginUIInterface {
     );
 
     foreach($this->element->parameterInfo() as $name => $parameter) {
-      $data_info[$parameter['type']] += array('ui class' => 'RulesDataUI');
-      $class = $data_info[$parameter['type']]['ui class'];
+      $class = is_string($type = $parameter['type']) && isset($data_info[$type]['ui class']) ? $data_info[$type]['ui class'] : 'RulesDataUI';
 
       $form['parameter'][$name] = array(
         '#type' => 'fieldset',
@@ -118,7 +122,7 @@ class RulesPluginUI extends FacesExtender implements RulesPluginUIInterface {
 
       // Init the parameter input mode.
       $form_state['parameter_mode'][$name] = !isset($form_state['parameter_mode'][$name]) ? NULL : $form_state['parameter_mode'][$name];
-      $form['parameter'][$name] += $this->getParameterForm($this->element->settings, $name, $class, $form_state['parameter_mode'][$name]);
+      $form['parameter'][$name] += $this->getParameterForm($name, $parameter, $settings, $class, $form_state['parameter_mode'][$name]);
     }
 
     // Add settings form, if specified.
@@ -138,7 +142,7 @@ class RulesPluginUI extends FacesExtender implements RulesPluginUIInterface {
   /**
    * Actually generates the parameter form for the given data type.
    */
-  protected function getParameterForm($settings, $name, $class, &$mode) {
+  protected function getParameterForm($name, $info, $settings, $class, &$mode) {
     // Init the mode.
     if (!isset($mode)) {
       if (isset($settings[$name . ':select'])) {
@@ -155,10 +159,14 @@ class RulesPluginUI extends FacesExtender implements RulesPluginUIInterface {
 
     // Add the parameter form.
     if ($mode == 'input' && $supports_input_mode) {
-      $form['settings'] = call_user_func(array($class, 'inputForm'), $name, $settings);
+      $form['settings'] = call_user_func(array($class, 'inputForm'), $name, $info, $settings, $this->element);
+      RulesDataInputEvaluator::attachForm($form['settings'], $settings, $info, $this->element->availableVariables());
     }
     else {
-      $form['settings'] = call_user_func(array($class, 'selectionForm'), $name, $settings);
+      $form['settings'] = call_user_func(array($class, 'selectionForm'), $name, $info, $settings, $this->element);
+      $settings += array($name . ':process' => array());
+      $form['settings'] += array($name . ':process' => array());
+      RulesDataProcessor::attachForm($form['settings'][$name . ':process'], $settings[$name . ':process'], $info, $this->element->availableVariables());
     }
 
     // Add a link for switching the input mode when JS is enabled and a button
@@ -238,10 +246,10 @@ class RulesPluginUI extends FacesExtender implements RulesPluginUIInterface {
   function form_extract_values($form, $form_state) {
     $this->element->settings = array();
     foreach ($form_state['values']['parameter'] as $name => $values) {
-      foreach ($values['settings'] as $key => $value) {
-        $this->element->settings[$key] = $value;
-      }
+      $this->element->settings += $values['settings'];
     }
+    $this->element->processSettings(TRUE, TRUE);
+
     if (!empty($form['settings'])) {
       $this->settingsFormExtractValues($form, $form_state);
     }

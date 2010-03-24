@@ -84,8 +84,9 @@
  *     is optional and there is no specified value. Optional.
  *   - restriction: Restrict how the argument for this parameter may be
  *     provided. Supported values are 'selector' and 'input'. Optional.
- *   - sanitize: Allows parameters of type 'text' to demand an already sanitized
- *     argument. Optionally.
+ *   - sanitize: Optionally. Allows parameters of type 'text' to demand an
+ *     already sanitized argument. If enabled, any user specified value won't be
+ *     sanitized itself, but replacements applied by input evaluators are.
  *  Each 'provides' array may contain the following properties:
  *   - label: The label of the variable. Start capitalized. Required.
  *   - type: The rules data type of the variable. All types declared in

@@ -15,7 +15,7 @@ interface RulesDataDirectInputForm {
    * @return Array
    *  The direct input form.
    */
-  public function inputForm($name, $settings);
+  public function inputForm($name, $info, $settings, RulesPlugin $element);
 }
 
 /**
@@ -33,7 +33,7 @@ class RulesDataUI {
   /**
    * Provides the selection form for a parameter.
    */
-  public function selectionForm($name, $settings) {
+  public function selectionForm($name, $info, $settings, RulesPlugin $element) {
     $form[$name . ':select'] = array(
       '#type' => 'textfield',
       '#title' => t('Data selector'),
@@ -48,16 +48,15 @@ class RulesDataUI {
  */
 class RulesDataUIText extends RulesDataUI implements RulesDataDirectInputForm {
 
-
   public function getDefaultMode() {
     return 'input';
   }
 
-  public function inputForm($name, $settings) {
+  public function inputForm($name, $info, $settings, RulesPlugin $element) {
     $form[$name] = array(
-      '#type' => 'textfield',
+      '#type' => 'textarea',
       '#title' => t('Value'),
-      '#default_value' => isset($settings[$name]) ? $settings[$name] : '',
+      '#default_value' => isset($settings[$name]) ? (string)$settings[$name] : '',
     );
     return $form;
   }
@@ -72,7 +71,7 @@ class RulesDataUIBoolean extends RulesDataUI implements RulesDataDirectInputForm
     return 'input';
   }
 
-  public function inputForm($name, $settings) {
+  public function inputForm($name, $info, $settings, RulesPlugin $element) {
     $form[$name] = array(
       '#type' => 'checkbox',
       '#title' => t('Enabled'),
