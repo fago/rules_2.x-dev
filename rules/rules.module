@@ -314,7 +314,7 @@ function rules_rules_plugin_info() {
           'class' => 'RulesAbstractPluginDefaults',
         ),
         'RulesPluginUIInterface' => array(
-          'class' => 'RulesPluginUI',
+          'class' => 'RulesAbstractPluginUI',
         ),
       ),
     ),
@@ -326,7 +326,7 @@ function rules_rules_plugin_info() {
           'class' => 'RulesAbstractPluginDefaults',
         ),
         'RulesPluginUIInterface' => array(
-          'class' => 'RulesPluginUI',
+          'class' => 'RulesAbstractPluginUI',
         ),
       ),
     ),

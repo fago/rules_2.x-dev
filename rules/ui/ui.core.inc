@@ -98,6 +98,9 @@ class RulesPluginUI extends FacesExtender implements RulesPluginUIInterface {
    * Generates the element edit form.
    */
   public function form(&$form, &$form_state, $options = array()) {
+    // Add the help to the top of the form.
+    $form['help'] = $this->help();
+
     $data_info = rules_fetch_data('data_info');
     // We use $form_state['element_settings'] to store the settings of both
     // parameter modes. That way one can switch between the parameter modes
@@ -488,6 +491,20 @@ class RulesPluginUI extends FacesExtender implements RulesPluginUIInterface {
 }
 
 /**
+ * UI for abstract plugins (conditions & actions).
+ */
+class RulesAbstractPluginUI extends RulesPluginUI {
+
+  /**
+   * Overridden to invoke the abstract plugins form alter callback.
+   */
+  public function form(&$form, &$form_state, $options = array()) {
+    parent::form($form, $form_state, $options);
+    $this->element->call('form_alter', array(&$form, &$form_state));
+  }
+}
+
+/**
  * UI for Rules Container.
  */
 class RulesContainerPluginUI extends RulesPluginUI {
@@ -660,6 +677,17 @@ interface RulesPluginImplInterface {
    * configuration.
    */
   public function access();
+
+  /**
+   * Alter the generated configuration form of the element.
+   *
+   * Validation and processing of the settings should be untied from the form
+   * and implemented in validate() and process() wherever it makes sense.
+   * For the remaining cases where form tied validation and processing is needed
+   * make use of the form API #element_validate and #value_callback properties.
+   */
+  public function form_alter(&$form, $form_state);
+
 }
 
 /**
@@ -683,4 +711,5 @@ class RulesAbstractPluginDefaults extends FacesExtender implements RulesPluginIm
 
   public function validate() {}
   public function process() {}
+  public function form_alter(&$form, $form_state) {}
 }

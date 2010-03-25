@@ -527,5 +527,13 @@ function rules_condition_data_is_process(RulesAbstractPlugin $element) {
 }
 
 /**
+ * Form alter callback for the condition data_is.
+ */
+function rules_condition_data_is_form_alter(&$form, $form_state, RulesAbstractPlugin $element) {
+  //TODO: implement.
+}
+
+
+/**
  * @}
  */
