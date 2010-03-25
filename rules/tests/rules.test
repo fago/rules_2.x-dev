@@ -577,7 +577,7 @@ class RulesTriggerTestCase extends DrupalWebTestCase {
     $rule = rules_reaction_rule();
     $rule->event($event)
          ->condition(rules_condition('data_is', array('data:select' => 'node:status', 'value' => TRUE))->negate())
-         ->condition('data_is', array('data:select' => 'node:type', 'op' => 'IN', 'value' => array('page', 'story')));
+         ->condition('data_is', array('data:select' => 'node:type', 'value' => array('page', 'story')));
     if ($action) {
       $rule->action('rules_action_delete_node');
     }

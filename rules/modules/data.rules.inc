@@ -490,8 +490,9 @@ function rules_data_condition_info() {
           'label' => t('Operator'),
           'description' => t('The comparison operator.'),
           'optional' => TRUE,
-          'default value' => '=',
+          'default value' => '==',
           'options list' => 'rules_condition_data_is_operator_options',
+          'restriction' => 'input',
         ),
         'value' => array(
           'type' => '*',
@@ -562,14 +563,14 @@ function rules_condition_data_is_help() {
 }
 
 /**
- * Return options for data_is
+ * Options list callback for condition data_is.
  */
 function rules_condition_data_is_operator_options() {
   return array(
-    '=' => '=',
-    '<=' => '<=',
-    '>=' => '>=',
-    'IN' => 'IN'
+    '==' => t('equals'),
+    '<' => t('is lower than'),
+    '>' => t('is greather than'),
+    'contains' => t('contains'),
   );
 }
 

@@ -39,6 +39,9 @@ class RulesDataUI {
       '#title' => t('Data selector'),
       '#default_value' => isset($settings[$name . ':select']) ? $settings[$name . ':select'] : '',
     );
+    $settings += array($name . ':process' => array());
+    $form[$name . ':process'] = array();
+    RulesDataProcessor::attachForm($form[$name . ':process'], $settings[$name . ':process'], $info, $element->availableVariables());
     return $form;
   }
 }
@@ -53,20 +56,25 @@ class RulesDataUIText extends RulesDataUI implements RulesDataDirectInputForm {
   }
 
   public function inputForm($name, $info, $settings, RulesPlugin $element) {
-    if (isset($info['options list'])) {
-      $callback = $info['options list'];
+    if (!empty($info['options list'])) {
+      // Make sure the .rules.inc of the providing module is included as the
+      // options list callback may reside there.
+      $element->call('loadBasicInclude');
+
       $form[$name] = array(
         '#type' => 'select',
         '#title' => t('Value'),
-        '#options' => $callback(),
+        '#options' => $info['options list'](),
+        '#default_value' => isset($settings[$name]) ? $settings[$name] : '',
       );
     }
     else {
       $form[$name] = array(
         '#type' => 'textarea',
         '#title' => t('Value'),
-        '#default_value' => isset($settings[$name]) ? (string)$settings[$name] : '',
+        '#default_value' => isset($settings[$name]) ? $settings[$name] : '',
       );
+      RulesDataInputEvaluator::attachForm($form, $settings, $info, $element->availableVariables());
     }
     return $form;
   }

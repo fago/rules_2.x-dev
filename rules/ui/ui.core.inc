@@ -170,13 +170,9 @@ class RulesPluginUI extends FacesExtender implements RulesPluginUIInterface {
     // Add the parameter form.
     if ($mode == 'input' && $supports_input_mode) {
       $form['settings'] = call_user_func(array($class, 'inputForm'), $name, $info, $settings, $this->element);
-      RulesDataInputEvaluator::attachForm($form['settings'], $settings, $info, $this->element->availableVariables());
     }
     else {
       $form['settings'] = call_user_func(array($class, 'selectionForm'), $name, $info, $settings, $this->element);
-      $settings += array($name . ':process' => array());
-      $form['settings'] += array($name . ':process' => array());
-      RulesDataProcessor::attachForm($form['settings'][$name . ':process'], $settings[$name . ':process'], $info, $this->element->availableVariables());
     }
 
     // Add a link for switching the input mode when JS is enabled and a button
