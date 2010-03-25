@@ -103,7 +103,7 @@ function rules_ui_add_element($form, &$form_state, $rules_config, $type, $elemen
     $form['submit']['#validate'][] = 'rules_ui_edit_element_validate';
     $form['submit']['#submit'][] = 'rules_ui_edit_element_submit';
 
-    $form_state += array('rules_element' => $parent_element);
+    $form_state += array('rules_element' => $element);
   }
 
   return $form;
