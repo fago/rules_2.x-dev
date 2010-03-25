@@ -21,7 +21,7 @@ class RulesRuleUI extends RulesActionContainerUI {
   }
 
   public function form(&$form, &$form_state, $options = array()) {
-    $form += array('conditions' => array('#weight' => -5));
+    $form += array('conditions' => array('#weight' => -5, '#tree' => TRUE));
     $this->conditions->form($form['conditions'], $form_state);
 
     // Add actions form.

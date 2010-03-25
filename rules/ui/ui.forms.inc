@@ -184,23 +184,6 @@ function rules_ui_parameter_replace($form, $form_state) {
 }
 
 /**
- * Submit callback for the condition data_is form.
- * TODO: Move this into the data.rules.inc file once the form API inclusion
- * mess is cleaned up.
- */
-function rules_condition_data_is_form_submit_rebuild($form, &$form_state) {
-  $element = $form_state['rules_element'];
-  // Update the needed type for the value parameter so the right form can be
-  // generated.
-  $data_selector = $form_state['values']['parameter']['data']['settings']['data:select'];
-  if (FALSE && $wrapper = $element->applyDataSelector($data_selector)) {
-    $element_info['parameter']['value']['type'] = $wrapper->type();
-    $element->alterInfo($element_info);
-  }
-  $form_state['rebuild'] = TRUE;
-}
-
-/**
  * Add a new event.
  */
 function rules_ui_add_event($form, &$form_state, $rules_config) {

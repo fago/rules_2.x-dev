@@ -297,18 +297,31 @@ function rules_action_data_set_access(RulesAbstractPlugin $element) {
 }
 
 /**
- * Form alter callback for the condition data_set.
+ * Form alter callback for the data_set action.
  */
 function rules_action_data_set_form_alter(&$form, &$form_state, RulesAbstractPlugin $element) {
-  if (!isset($form_state['rules_element_step']) || $form_state['rules_element_step'] == 'data_to_modify'){
+  if (!isset($form_state['rules_element_step'])) {
     unset($form['parameter']['value']);
     $form['submit'] = array(
       '#type' => 'submit',
       '#value' => t('Continue'),
-      '#validate' => array(),
+      '#limit_validation_errors' => array('parameter', 'data'),
       '#submit' => array('rules_form_submit_rebuild'),
     );
     $form_state['rules_element_step'] = 'data_value';
+    // Clear the parameter mode for the value parameter, so its gets the proper
+    // default value based upon the type of the the selected data on rebuild.
+    unset($form_state['parameter_mode']['value']);
+  }
+}
+
+/**
+ * Process callback for the data_set action.
+ */
+function rules_action_data_set_process(RulesAbstractPlugin $element) {
+  if ($wrapper = $element->applyDataSelector($element->settings['data:select'])) {
+    $element_info['parameter']['value']['type'] = $wrapper->type();
+    $element->alterInfo($element_info);
   }
 }
 
@@ -560,8 +573,8 @@ function rules_condition_data_is_form_alter(&$form, &$form_state, RulesAbstractP
     $form['submit'] = array(
       '#type' => 'submit',
       '#value' => t('Continue'),
-      '#limit_validation_errors' => array('parameter', 'value'),
-      '#submit' => array('rules_condition_data_is_form_submit_rebuild'),
+      '#limit_validation_errors' => array('parameter', 'data'),
+      '#submit' => array('rules_form_submit_rebuild'),
     );
     // Clear the parameter mode for the value parameter, so its gets the proper
     // default value based upon the type of the the selected data on rebuild.
