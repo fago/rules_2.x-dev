@@ -102,6 +102,9 @@ class RulesPluginUI extends FacesExtender implements RulesPluginUIInterface {
     $form['help'] = $this->element->help();
 
     $data_info = rules_fetch_data('data_info');
+    // Make the element available in the form state.
+    $form_state['rules_element'] = $this->element;
+
     // We use $form_state['element_settings'] to store the settings of both
     // parameter modes. That way one can switch between the parameter modes
     // without loosing the settings of those.
@@ -512,6 +515,9 @@ class RulesContainerPluginUI extends RulesPluginUI {
    * Generates a table for editing the contained elements.
    */
   public function form(&$form, &$form_state, $options = array(), $iterator = NULL) {
+    // Make the element available in the form state.
+    $form_state['rules_element'] = $this->element;
+
     $form['elements'] = array(
       '#tree' => TRUE,
       '#theme' => 'rules_elements',

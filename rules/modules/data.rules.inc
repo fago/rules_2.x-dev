@@ -516,6 +516,11 @@ function rules_data_condition_info() {
  * evaluated elements can make use of this information.
  */
 function rules_condition_data_is_process(RulesAbstractPlugin $element) {
+  if ($wrapper = $element->applyDataSelector($element->settings['data:select'])) {
+    $element_info['parameter']['value']['type'] = $wrapper->type();
+    $element->alterInfo($element_info);
+  }
+  // Assert the bundle of entities, if its compared.
   if (($parts = explode(':', $element->settings['data:select'])) && count($parts) == 2 && isset($element->settings['value']) && !is_array($element->settings['value'])) {
     if (($vars = $element->availableVariables()) && isset($vars[$parts[0]])) {
       $type = $vars[$parts[0]]['type'];
@@ -530,28 +535,21 @@ function rules_condition_data_is_process(RulesAbstractPlugin $element) {
 
 /**
  * Form alter callback for the condition data_is.
+ * Use multiple steps to configure the condition as the
  */
 function rules_condition_data_is_form_alter(&$form, $form_state, RulesAbstractPlugin $element) {
-  if (!isset($form_state['rules_element_step']) || $form_state['rules_element_step'] == 'data_to_compare'){
-    unset($form['parameter']['op']);
-    unset($form['parameter']['value']);
-    $form['submit'] = array(
-      '#type' => 'submit',
-      '#value' => t('Continue'),
-      '#validate' => array(),
-      '#submit' => array('rules_form_submit_rebuild'),
-    );
-    $form_state['rules_element_step'] = 'operator';
-  }
-  else if($form_state['rules_element_step'] == 'operator') {
-    unset($form['parameter']['value']);
-    $form['submit'] = array(
-      '#type' => 'submit',
-      '#value' => t('Continue'),
-      '#validate' => array(),
-      '#submit' => array('rules_form_submit_rebuild'),
-    );
+  if (!isset($form_state['rules_element_step'])) {
+    unset($form['parameter']['op'], $form['parameter']['value']);
     $form_state['rules_element_step'] = 'data_value';
+    $form['submit'] = array(
+      '#type' => 'submit',
+      '#value' => t('Continue'),
+      '#limit_validation_errors' => array('parameter', 'value'),
+      '#submit' => array('rules_condition_data_is_form_submit_rebuild'),
+    );
+    // Clear the parameter mode for the value parameter, so its gets the proper
+    // default value based upon the type of the the selected data on rebuild.
+    unset($form_state['parameter_mode']['value']);
   }
 }
 
@@ -573,6 +571,8 @@ function rules_condition_data_is_operator_options() {
     'contains' => t('contains'),
   );
 }
+
+
 
 /**
  * @}

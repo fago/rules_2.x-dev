@@ -67,7 +67,7 @@ class RulesReactionRuleUI extends RulesRuleUI {
     foreach ($this->rule->events() as $event_name) {
       $form['events']['table']['#rows'][$event_name] = array(
         check_plain($event_info[$event_name]['label']),
-        '<span class="rules_rule_event">' . l(t('remove'), RulesPluginUI::path($this->rule->name, 'event/remove', $event_name)) . '</span>',
+        '<span class="rules_rule_event">' . l(t('Remove'), RulesPluginUI::path($this->rule->name, 'event/remove', $event_name)) . '</span>',
       );
     }
 

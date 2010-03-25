@@ -9,7 +9,7 @@
  * Edit a rules configuration.
  */
 function rules_ui_form_edit_rules_config($form, &$form_state, $rules_config) {
-  $form_state += array('rules_config' => $rules_config);
+  $form_state += array('rules_element' => $rules_config);
   // Add the rule configuration's form.
   $rules_config->form($form, $form_state, array('show settings' => TRUE, 'button' => TRUE));
   return $form;
@@ -19,14 +19,14 @@ function rules_ui_form_edit_rules_config($form, &$form_state, $rules_config) {
  * Edit a rules configuration form validation callback.
  */
 function rules_ui_form_edit_rules_config_validate($form, &$form_state) {
-  $form_state['rules_config']->form_validate($form, $form_state);
+  $form_state['rules_element']->form_validate($form, $form_state);
 }
 
 /**
  * Edit a rules configuration form submit callback.
  */
 function rules_ui_form_edit_rules_config_submit($form, &$form_state) {
-  $form_state['rules_config']->form_submit($form, $form_state);
+  $form_state['rules_element']->form_submit($form, $form_state);
   // Rebuild instead of redirect as this is faster.
   $form_state['rebuild'] = TRUE;
   // We need to clear the values so the new weight-id combinations can take
@@ -108,22 +108,19 @@ function rules_ui_add_element_submit($form, &$form_state) {
  * Delete elements.
  */
 function rules_ui_delete_element($form, &$form_state, $rules_config, $rules_element) {
-  $form_state += array('rules_config' => $rules_config);
-  $form_state += array('rules_element' => $rules_element);
+  $form_state += array('rules_config' => $rules_config, 'rules_element' => $rules_element);
   $confirm_question = t('Are you sure you want to delete the %element_plugin %element_name?', array('%element_plugin' => $rules_element->plugin(), '%element_name' => $rules_element->label(), '%plugin' => $rules_config->plugin(), '%label' => $rules_config->label()));
   return confirm_form($form, $confirm_question, RULES_UI_PATH, t('This action cannot be undone.'), t('Delete'), t('Cancel'));
 }
 
 /**
- * Rule config deletion form submit callback.
+ * Rule config deletion form validation callback.
  */
 function rules_ui_delete_element_validate($form, &$form_state) {
   if ($form_state['values']['confirm']) {
-    $rules_config = $form_state['rules_config'];
-    $rules_element = $form_state['rules_element'];
-    $rules_element->delete();
+    $form_state['rules_element']->delete();
     try {
-      $rules_config->integrityCheck();
+      $form_state['rules_config']->integrityCheck();
     }
     catch (RulesException $e) {
       //TODO: Add visual feedback which element had troubles.
@@ -184,6 +181,23 @@ function rules_ui_parameter_replace_submit($form, &$form_state) {
  */
 function rules_ui_parameter_replace($form, $form_state) {
   return $form['parameter'];
+}
+
+/**
+ * Submit callback for the condition data_is form.
+ * TODO: Move this into the data.rules.inc file once the form API inclusion
+ * mess is cleaned up.
+ */
+function rules_condition_data_is_form_submit_rebuild($form, &$form_state) {
+  $element = $form_state['rules_element'];
+  // Update the needed type for the value parameter so the right form can be
+  // generated.
+  $data_selector = $form_state['values']['parameter']['data']['settings']['data:select'];
+  if (FALSE && $wrapper = $element->applyDataSelector($data_selector)) {
+    $element_info['parameter']['value']['type'] = $wrapper->type();
+    $element->alterInfo($element_info);
+  }
+  $form_state['rebuild'] = TRUE;
 }
 
 /**
