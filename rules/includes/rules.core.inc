@@ -531,7 +531,7 @@ abstract class RulesPlugin extends RulesExtendable {
           throw new RulesException("%plugin: The data type of the configured argument does not match the parameter's %name requirement.", array('%plugin' => $this->getPluginName(), '%name' => $name), $this);
         }
       }
-      elseif (isset($this->parent) && !isset($this->settings[$name]) && empty($info['optional'])) {
+      elseif (isset($this->parent) && !isset($this->settings[$name]) && empty($info['optional']) && $info['type'] != 'hidden') {
         throw new RulesException('%plugin: Missing configuration for parameter %name.', array('%plugin' => $this->getPluginName(), '%name' => $name), $this);
       }
       //TODO: Make sure used values are allowed. (key/value pairs + allowed values)
@@ -766,7 +766,7 @@ abstract class RulesAbstractPlugin extends RulesPlugin {
    */
   function __construct($name = NULL, $settings = array()) {
     $this->elementName = $name;
-    $this->settings = $settings + array('#_needs_processing' => TRUE);
+    $this->settings = (array)$settings + array('#_needs_processing' => TRUE);
     $this->setUp();
   }
 

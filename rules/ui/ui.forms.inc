@@ -56,57 +56,52 @@ function rules_ui_form_delete_rules_config_submit($form, &$form_state) {
 }
 
 /**
- * Add Elements.
+ * Add a new element a rules configuration.
  */
 function rules_ui_add_element($form, &$form_state, $rules_config, $type, $element_id) {
-  if(!isset($form_state['rules_mode'])) {
+  $form_state += array('rules_config' => $rules_config, 'type' => $type, 'element_id' => $element_id);
+  // In the first step create the element and in the second step show its edit
+  // form.
+  if (!isset($form_state['rules_element'])) {
     $form['element_name'] = array(
       '#type' => 'select',
-      '#title' => t('Select an Event'),
-      '#options' => array(RulesPluginUI::getOptions($type . '_info')),
+      '#title' => t('Select the %element to add', array('%element' => $type)),
+      '#options' => RulesPluginUI::getOptions($type . '_info'),
     );
     $form['submit'] = array(
       '#type' => 'submit',
-      '#value' => t('Save'),
+      '#value' => t('Continue'),
     );
-    $form_state['rules_mode'] = 'parameter';
-    $form_state['rebuild'] = TRUE;
   }
   else {
-    $parent_element = RulesPluginUI::getChildElementById($rules_config, $element_id);
-    switch($type) {
-      case 'condition':
-        $element = rules_condition($form_state['values']['element_name']);
-        $parent_element->condition($element);
-        break;
-      case 'or':
-        $element = rules_or($form_state['values']['element_name']);
-        $parent_element->condition($element);
-        break;
-      case 'and':
-        $element = rules_and($form_state['values']['element_name']);
-        $parent_element->condition($element);
-        break;
-      case 'action':
-        $element = rules_action($form_state['values']['element_name']);
-        $parent_element->action($element);
-        break;
-      case 'loop':
-        $element = rules_loop($form_state['values']['element_name']);
-        $parent_element->action($element);
-        break;
-    }
-
-    $element->form($form, $form_state, array('button' => TRUE));
-    $form_state['redirect'] = RulesPluginUI::path($rules_config->name, '');
-
-    $form['submit']['#validate'][] = 'rules_ui_edit_element_validate';
-    $form['submit']['#submit'][] = 'rules_ui_edit_element_submit';
-
-    $form_state += array('rules_element' => $element);
+    $form_state['rules_element']->form($form, $form_state, array('button' => TRUE));
+    $form['#validate'][] = 'rules_ui_edit_element_validate';
+    $form['#submit'][] = 'rules_ui_edit_element_submit';
   }
-
   return $form;
+}
+
+/**
+ * Add element submit callback.
+ * Create the new element and rebuild the form.
+ */
+function rules_ui_add_element_submit($form, &$form_state) {
+  $rules_config = $form_state['rules_config'];
+  $parent = RulesPluginUI::getChildElementById($rules_config, $form_state['element_id']);
+  $element = rules_plugin_factory($form_state['type'], $form_state['values']['element_name']);
+
+  // Clear the element settings so they won't be processed on serialization as
+  // there is nothing to be processed yet.
+  $element->settings = array();
+
+  if ($element instanceof RulesConditionInterface) {
+    $parent->condition($element);
+  }
+  else {
+    $parent->action($element);
+  }
+  $form_state['rules_element'] = $element;
+  $form_state['rebuild'] = TRUE;
 }
 
 /**
@@ -243,7 +238,6 @@ function rules_ui_add_event_submit($form, &$form_state) {
 function rules_ui_remove_event($form, &$form_state, $rules_config, $event) {
   $form_state += array('rules_config' => $rules_config, 'rules_event' => $event);
   $confirm_question = t('Are you sure you want to remove %event from the %plugin %label?', array('%plugin' => $rules_config->plugin(), '%label' => $rules_config->label(), '%event' => $event));
-  $form_state['redirect'] = RulesPluginUI::path($rules_config->name);
   return confirm_form($form, $confirm_question, RULES_UI_RULE_PATH, t('This action cannot be undone.'), t('Remove'), t('Cancel'));
 }
 
@@ -269,6 +263,7 @@ function rules_ui_remove_event_submit($form, &$form_state) {
   if ($form_state['values']['confirm']) {
     $rules_config = $form_state['rules_config'];
     $rules_config->save();
+    $form_state['redirect'] = RulesPluginUI::path($rules_config->name);
     drupal_set_message(t('Event %event was removed from %plugin %label', array('%event' => $form_state['rules_event'], '%label' => $rules_config->label(), '%plugin' => $rules_config->plugin())));
   }
 }

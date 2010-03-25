@@ -346,7 +346,7 @@ class RulesLoop extends RulesActionContainer {
 
   public function __construct($settings = array(), $variables = NULL) {
     $this->setUp();
-    $this->settings = $settings + array(
+    $this->settings = (array)$settings + array(
       'item:var' => 'list-item',
       'item:label' => t('Current list item'),
     );

@@ -112,6 +112,10 @@ class RulesPluginUI extends FacesExtender implements RulesPluginUIInterface {
     );
 
     foreach($this->element->parameterInfo() as $name => $parameter) {
+      if ($parameter['type'] == 'hidden') {
+        continue;
+      }
+
       $class = is_string($type = $parameter['type']) && isset($data_info[$type]['ui class']) ? $data_info[$type]['ui class'] : 'RulesDataUI';
 
       $form['parameter'][$name] = array(
