@@ -533,6 +533,13 @@ function rules_condition_data_is_form_alter(&$form, $form_state, RulesAbstractPl
   //TODO: implement.
 }
 
+/**
+ * Provides configuration help for the data_is condition.
+ */
+function rules_condition_data_is_help() {
+  return array('#markup' => t('Currently you have to know which data selectors are available. Helpful not? ;)'));
+}
+
 
 /**
  * @}

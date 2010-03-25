@@ -99,7 +99,7 @@ class RulesPluginUI extends FacesExtender implements RulesPluginUIInterface {
    */
   public function form(&$form, &$form_state, $options = array()) {
     // Add the help to the top of the form.
-    $form['help'] = $this->help();
+    $form['help'] = $this->element->help();
 
     $data_info = rules_fetch_data('data_info');
     // We use $form_state['element_settings'] to store the settings of both
