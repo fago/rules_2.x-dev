@@ -109,9 +109,15 @@ function rules_admin_add_reaction_rule($form, &$form_state) {
   $form['settings']['#collapsible'] = FALSE;
   unset($form['elements'], $form['conditions'], $form['add'], $form['events']);
 
-  $form['#submit'] = array('rules_admin_add_reaction_rule_submit');
   $form_state += array('rules_config' => $rules_config);
   return $form;
+}
+
+/**
+ * Form add reaction_rule validation callback.
+ */
+function rules_admin_add_reaction_rule_validate($form, &$form_state) {
+  $form_state['rules_config']->form_validate($form, $form_state);
 }
 
 /**
