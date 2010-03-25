@@ -158,6 +158,9 @@ class RulesPluginUI extends FacesExtender implements RulesPluginUIInterface {
       elseif (isset($settings[$name]) && $class instanceof RulesDataDirectInputForm) {
         $mode = 'input';
       }
+      elseif (isset($info['restriction'])) {
+        $mode = $info['restriction'];
+      }
       else {
         $mode = call_user_func(array($class, 'getDefaultMode'));
       }
@@ -178,7 +181,7 @@ class RulesPluginUI extends FacesExtender implements RulesPluginUIInterface {
 
     // Add a link for switching the input mode when JS is enabled and a button
     // to switch it without javascript, in case switching is possible.
-    if ($supports_input_mode) {
+    if ($supports_input_mode && empty($info['restriction'])) {
       $value = $mode == 'selector' ? t('Switch to the direct input mode') : t('Switch to data selection');
       $link_id = drupal_html_id('rules-parameter-switch-' . $name);
 

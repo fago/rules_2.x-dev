@@ -112,6 +112,7 @@ function rules_system_action_info() {
           'label' => t('Show as error'),
           'optional' => TRUE,
           'default value' => FALSE,
+          'restriction' => 'input',
         ),
       ),
       'base' => 'rules_action_drupal_message',
