@@ -1,6 +1,6 @@
 ; $Id$
-name = Rules 2 Admin UI 
-description = Admin ui for Rules
+name = Rules UI
+description = Administrative interface for managing rules.
 package = Rules
 version = VERSION
 core = 7.x

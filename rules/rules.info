@@ -1,6 +1,6 @@
 ; $Id$
-name = Rules2
-description = Lets you define conditionally executed actions based on occurring events.
+name = Rules
+description = React on events and conditionally evaluate actions.
 package = Rules
 version = VERSION
 core = 7.x
