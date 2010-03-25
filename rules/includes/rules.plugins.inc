@@ -217,13 +217,16 @@ class RulesReactionRule extends Rule implements RulesTriggerableInterface {
   }
 
   /**
-   * Deletes an event associated with that Rule.
-   * @param event to delete
+   * Removes an event from the rule configuration.
+   *
+   * @param $event
+   *   The name of the event to remove.
    * @return RulesReactionRule
    */
-  public function deleteEvent($event) {
-    $id = array_search($event, $this->events);
-    unset($this->events[$id]);
+  public function removeEvent($event) {
+    if (($id = array_search($event, $this->events)) !== FALSE) {
+      unset($this->events[$id]);
+    }
     return $this;
   }
 
