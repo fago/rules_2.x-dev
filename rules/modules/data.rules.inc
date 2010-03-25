@@ -297,6 +297,22 @@ function rules_action_data_set_access(RulesAbstractPlugin $element) {
 }
 
 /**
+ * Form alter callback for the condition data_set.
+ */
+function rules_action_data_set_form_alter(&$form, &$form_state, RulesAbstractPlugin $element) {
+  if (!isset($form_state['rules_element_step']) || $form_state['rules_element_step'] == 'data_to_modify'){
+    unset($form['parameter']['value']);
+    $form['submit'] = array(
+      '#type' => 'submit',
+      '#value' => t('Continue'),
+      '#validate' => array(),
+      '#submit' => array('rules_form_submit_rebuild'),
+    );
+    $form_state['rules_element_step'] = 'data_value';
+  }
+}
+
+/**
  * Custom access callback for data create and fetch action.
  */
 function rules_action_entity_createfetch_access(RulesAbstractPlugin $element) {
@@ -537,7 +553,7 @@ function rules_condition_data_is_process(RulesAbstractPlugin $element) {
  * Form alter callback for the condition data_is.
  * Use multiple steps to configure the condition as the
  */
-function rules_condition_data_is_form_alter(&$form, $form_state, RulesAbstractPlugin $element) {
+function rules_condition_data_is_form_alter(&$form, &$form_state, RulesAbstractPlugin $element) {
   if (!isset($form_state['rules_element_step'])) {
     unset($form['parameter']['op'], $form['parameter']['value']);
     $form_state['rules_element_step'] = 'data_value';
