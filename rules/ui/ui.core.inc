@@ -558,7 +558,7 @@ class RulesContainerPluginUI extends RulesPluginUI {
       $values = isset($values[$key]) ? $values[$key] : NULL;
     }
     // Now apply the new hierarchy.
-    if (isset($values)) {
+    if (isset($values['elements'])) {
       $root_element = $this->element->root();
       foreach ($values['elements'] as $id => $data) {
         $child = self::getChildElementById($root_element, $id);
