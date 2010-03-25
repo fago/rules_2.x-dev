@@ -53,11 +53,21 @@ class RulesDataUIText extends RulesDataUI implements RulesDataDirectInputForm {
   }
 
   public function inputForm($name, $info, $settings, RulesPlugin $element) {
-    $form[$name] = array(
-      '#type' => 'textarea',
-      '#title' => t('Value'),
-      '#default_value' => isset($settings[$name]) ? (string)$settings[$name] : '',
-    );
+    if (isset($info['options list'])) {
+      $callback = $info['options list'];
+      $form[$name] = array(
+        '#type' => 'select',
+        '#title' => t('Value'),
+        '#options' => $callback(),
+      );
+    }
+    else {
+      $form[$name] = array(
+        '#type' => 'textarea',
+        '#title' => t('Value'),
+        '#default_value' => isset($settings[$name]) ? (string)$settings[$name] : '',
+      );
+    }
     return $form;
   }
 }

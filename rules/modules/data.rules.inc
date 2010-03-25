@@ -491,6 +491,7 @@ function rules_data_condition_info() {
           'description' => t('The comparison operator.'),
           'optional' => TRUE,
           'default value' => '=',
+          'options list' => 'rules_condition_data_is_operator_options',
         ),
         'value' => array(
           'type' => '*',
@@ -530,7 +531,27 @@ function rules_condition_data_is_process(RulesAbstractPlugin $element) {
  * Form alter callback for the condition data_is.
  */
 function rules_condition_data_is_form_alter(&$form, $form_state, RulesAbstractPlugin $element) {
-  //TODO: implement.
+  if (!isset($form_state['rules_element_step']) || $form_state['rules_element_step'] == 'data_to_compare'){
+    unset($form['parameter']['op']);
+    unset($form['parameter']['value']);
+    $form['submit'] = array(
+      '#type' => 'submit',
+      '#value' => t('Continue'),
+      '#validate' => array(),
+      '#submit' => array('rules_form_submit_rebuild'),
+    );
+    $form_state['rules_element_step'] = 'operator';
+  }
+  else if($form_state['rules_element_step'] == 'operator') {
+    unset($form['parameter']['value']);
+    $form['submit'] = array(
+      '#type' => 'submit',
+      '#value' => t('Continue'),
+      '#validate' => array(),
+      '#submit' => array('rules_form_submit_rebuild'),
+    );
+    $form_state['rules_element_step'] = 'data_value';
+  }
 }
 
 /**
@@ -540,6 +561,17 @@ function rules_condition_data_is_help() {
   return array('#markup' => t('Currently you have to know which data selectors are available. Helpful not? ;)'));
 }
 
+/**
+ * Return options for data_is
+ */
+function rules_condition_data_is_operator_options() {
+  return array(
+    '=' => '=',
+    '<=' => '<=',
+    '>=' => '>=',
+    'IN' => 'IN'
+  );
+}
 
 /**
  * @}
