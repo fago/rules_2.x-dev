@@ -1,0 +1,6 @@
+; $Id$
+name = Rules Scheduler
+description = Schedule the execution of rule components.
+dependencies[] = rules
+package = Rules
+core = 7.x
