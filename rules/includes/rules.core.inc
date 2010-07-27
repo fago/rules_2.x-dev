@@ -829,6 +829,13 @@ abstract class RulesPlugin extends RulesExtendable {
   }
 
   /**
+   * Returns info about the element's plugin.
+   */
+  public function pluginInfo() {
+    return $this->itemInfo;
+  }
+
+  /**
    * Exports a rule configuration.
    *
    * @param $php
@@ -1396,8 +1403,18 @@ abstract class RulesContainerPlugin extends RulesPlugin implements IteratorAggre
 
   public function __construct($variables = array()) {
     $this->setUp();
-    if (!empty($variables)) {
+    if (!empty($variables) && $this->isRoot()) {
       $this->info['variables'] = $variables;
+    }
+  }
+
+  /**
+   * Returns the specified variables, in case the plugin is used as component.
+   */
+  public function &componentVariables() {
+    if ($this->isRoot()) {
+      $this->info += array('variables' => array());
+      return $this->info['variables'];
     }
   }
 

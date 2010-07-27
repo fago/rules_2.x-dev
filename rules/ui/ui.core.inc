@@ -356,6 +356,25 @@ class RulesPluginUI extends FacesExtender implements RulesPluginUIInterface {
       );
       $form['settings']['label']['#field_suffix'] = '&nbsp;<small id="edit-label-suffix">' . t('Machine name: @name', array('@name' => $form['settings']['name']['#default_value'])) . '</small>';
     }
+
+    // Show a form for editing variables for components.
+    if (($plugin_info = $this->element->pluginInfo()) && !empty($plugin_info['component'])) {
+      $form['settings']['vars'] = array(
+        '#prefix' => '<div id="rules-component-variables">',
+        '#suffix' => '</div>',
+        '#tree' => TRUE,
+      //  '#theme' => 'rules_admin_form_arguments',
+        '#description' => t('Specify the variables to be passed to the component when it is invoked. For each variable you have to specify a certain data type, a label and a unique machine readable name containing only lowercase alphanumeric characters, and underscores.'),
+      );
+      foreach ($this->element->componentVariables() as $name => $var_info) {
+        $form['settings']['vars'][$name] = RulesPluginUI::getVariableForm($name, $var_info);
+      }
+      // Always add three empty forms.
+      for ($i = 0; $i < 3; $i++) {
+        $form['settings']['vars'][$i] = RulesPluginUI::getVariableForm();
+      }
+    }
+
     // TODO: Attach field form thus description and tags.
   }
 
@@ -378,10 +397,55 @@ class RulesPluginUI extends FacesExtender implements RulesPluginUIInterface {
     elseif ($form['settings']['name']['#default_value'] != $form_state['values']['name'] && rules_config_load($this->element->name)) {
       form_set_error('name', t('The machine-readable name %name is already taken.', array('%name' => $form_state['values']['name'])));
     }
+
+    if (!empty($form_state['values']['vars'])) {
+
+      //validate the arguments
+      foreach ($form_state['values']['args'] as $i => $values) {
+        if (array_filter($values)) {
+          foreach (array('name', 'type', 'label') as $key) {
+            if (!$values[$key]) {
+              form_set_error(implode('][', array('args', $i, $key)), t('All fields of an argument are required.'));
+            }
+          }
+          if (!eregi('^[0-9a-z_]*$', $values['name'])) {
+            form_set_error(implode('][', array('args', $i, 'name')), t('The name may contain only digits, numbers and underscores.'));
+          }
+        }
+        else {
+          unset($form_state['values']['args'][$i]);
+        }
+      }
+    }
   }
 
   public function settingsFormSubmit($form, &$form_state) {
 
+  }
+
+  /**
+   * Returns the form for configuring the info of a single variable.
+   */
+  public function getVariableForm($name = '', $info = array()) {
+    $form['type'] = array(
+      '#type' => 'select',
+      '#title' => t('Data type'),
+      '#options' => array(0 => '--') + RulesPluginUI::getOptions('data_info'),
+      '#default_value' => isset($info['type']) ? $info['type'] : 0,
+    );
+    $form['name'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Machine readable variable name'),
+      '#size' => 40,
+      '#default_value' => $name,
+    );
+    $form['label'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Label'),
+      '#size' => 40,
+      '#default_value' => isset($info['label']) ? $info['label'] : '',
+    );
+    return $form;
   }
 
   /**
@@ -587,15 +651,23 @@ class RulesPluginUI extends FacesExtender implements RulesPluginUIInterface {
    */
   public static function getOptions($hook) {
     $sorted_data = array();
+    $ungrouped = array();
     $data = rules_fetch_data($hook);
-    foreach ($data as $name => $set) {
-      $sorted_data[ucfirst($set['group'])][$name] = $set['label'];
+    foreach ($data as $name => $info) {
+      if (!empty($info['group'])) {
+        $sorted_data[drupal_ucfirst($info['group'])][$name] = drupal_ucfirst($info['label']);
+      }
+      else {
+        $ungrouped[$name] = drupal_ucfirst($info['label']);
+      }
     }
-    foreach ($sorted_data as $key => $set) {
-      asort($set);
-      $sorted_data[$key] = $set;
+    asort($ungrouped);
+    foreach ($sorted_data as $key => $choices) {
+      asort($choices);
+      $sorted_data[$key] = $choices;
     }
-    return $sorted_data;
+    ksort($sorted_data);
+    return $ungrouped + $sorted_data;
   }
 
   public static function formDefaults(&$form) {
