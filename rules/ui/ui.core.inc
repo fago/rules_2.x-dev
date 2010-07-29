@@ -363,15 +363,19 @@ class RulesPluginUI extends FacesExtender implements RulesPluginUIInterface {
         '#prefix' => '<div id="rules-component-variables">',
         '#suffix' => '</div>',
         '#tree' => TRUE,
-      //  '#theme' => 'rules_admin_form_arguments',
+        '#theme' => 'rules_ui_variable_form',
+        '#title' => t('Variables'),
         '#description' => t('Specify the variables to be passed to the component when it is invoked. For each variable you have to specify a certain data type, a label and a unique machine readable name containing only lowercase alphanumeric characters, and underscores.'),
       );
+      $weight = 0;
       foreach ($this->element->componentVariables() as $name => $var_info) {
         $form['settings']['vars'][$name] = RulesPluginUI::getVariableForm($name, $var_info);
+        $form['settings']['vars'][$name]['weight']['#default_value'] = $weight++;
       }
       // Always add three empty forms.
       for ($i = 0; $i < 3; $i++) {
         $form['settings']['vars'][$i] = RulesPluginUI::getVariableForm();
+        $form['settings']['vars'][$i]['weight']['#default_value'] = $weight++;
       }
     }
 
@@ -429,21 +433,22 @@ class RulesPluginUI extends FacesExtender implements RulesPluginUIInterface {
   public function getVariableForm($name = '', $info = array()) {
     $form['type'] = array(
       '#type' => 'select',
-      '#title' => t('Data type'),
       '#options' => array(0 => '--') + RulesPluginUI::getOptions('data_info'),
       '#default_value' => isset($info['type']) ? $info['type'] : 0,
     );
+    $form['label'] = array(
+      '#type' => 'textfield',
+      '#size' => 40,
+      '#default_value' => isset($info['label']) ? $info['label'] : '',
+    );
     $form['name'] = array(
       '#type' => 'textfield',
-      '#title' => t('Machine readable variable name'),
       '#size' => 40,
       '#default_value' => $name,
     );
-    $form['label'] = array(
-      '#type' => 'textfield',
-      '#title' => t('Label'),
-      '#size' => 40,
-      '#default_value' => isset($info['label']) ? $info['label'] : '',
+    // Just set the weight #default_value for the returned form.
+    $form['weight'] = array(
+      '#type' => 'weight',
     );
     return $form;
   }
@@ -618,7 +623,6 @@ class RulesPluginUI extends FacesExtender implements RulesPluginUIInterface {
       '#rows' => $rows,
       '#empty' => t('None'),
     );
-    $table['#attributes']['class'][] = 'rules-table';
     return $table;
   }
 
@@ -736,7 +740,6 @@ class RulesContainerPluginUI extends RulesPluginUI {
       '#empty' => t('None'),
       '#caption' => t('Elements')
     );
-    $form['elements']['#attributes']['class'][] = 'rules-table';
     $form['elements']['#attributes']['class'][] = 'rules-container-plugin';
 
     // Recurse over all element childrens or use the provided iterator.
