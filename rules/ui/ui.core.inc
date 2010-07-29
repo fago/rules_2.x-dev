@@ -364,6 +364,7 @@ class RulesPluginUI extends FacesExtender implements RulesPluginUIInterface {
         '#prefix' => '<div id="rules-component-variables">',
         '#suffix' => '</div>',
         '#tree' => TRUE,
+        '#element_validate' => array('rules_ui_element_variable_form_validate'),
         '#theme' => 'rules_ui_variable_form',
         '#title' => t('Variables'),
         '#description' => t('Specify the variables to be passed to the component when it is invoked. For each variable you have to specify a certain data type, a label and a unique machine readable name containing only lowercase alphanumeric characters, and underscores.'),
@@ -402,26 +403,6 @@ class RulesPluginUI extends FacesExtender implements RulesPluginUIInterface {
   public function settingsFormValidate($form, &$form_state) {
     if ($form['settings']['name']['#default_value'] != $form_state['values']['name'] && rules_config_load($this->element->name)) {
       form_set_error('name', t('The machine-readable name %name is already taken.', array('%name' => $form_state['values']['name'])));
-    }
-
-    if (!empty($form_state['values']['vars'])) {
-
-      //validate the arguments
-      foreach ($form_state['values']['args'] as $i => $values) {
-        if (array_filter($values)) {
-          foreach (array('name', 'type', 'label') as $key) {
-            if (!$values[$key]) {
-              form_set_error(implode('][', array('args', $i, $key)), t('All fields of an argument are required.'));
-            }
-          }
-          if (!eregi('^[0-9a-z_]*$', $values['name'])) {
-            form_set_error(implode('][', array('args', $i, 'name')), t('The name may contain only digits, numbers and underscores.'));
-          }
-        }
-        else {
-          unset($form_state['values']['args'][$i]);
-        }
-      }
     }
   }
 

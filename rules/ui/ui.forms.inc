@@ -603,3 +603,25 @@ function rules_ui_element_machine_name_validate($element, &$form_state) {
     form_error($element, t('Machine-readable names must contain only lowercase letters, numbers, and underscores.'));
   }
 }
+
+/**
+ * FAPI callback to validate the form for editing variable info.
+ * @see RulesPluginUI::getVariableForm()
+ */
+function rules_ui_element_variable_form_validate($elements, &$form_state) {
+  $names = array();
+  foreach (element_children($elements['items']) as $item_key) {
+    $element = &$elements['items'][$item_key];
+    if ($element['name']['#value'] || $element['type']['#value'] || $element['label']['#value']) {
+      foreach (array('name' => t('Machine name'), 'label' => t('Label'), 'type' => t('Data type')) as $key => $title) {
+        if (!$element[$key]['#value']) {
+          form_error($element[$key], t('!name field is required.', array('!name' => $title)));
+        }
+      }
+      if (isset($names[$element['name']['#value']])) {
+        form_error($element['name'], t('The machine-readable name %name is already taken.', array('%name' => $element['name']['#value'])));
+      }
+      $names[$element['name']['#value']] = TRUE;
+    }
+  }
+}
