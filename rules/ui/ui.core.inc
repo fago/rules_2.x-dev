@@ -334,6 +334,7 @@ class RulesPluginUI extends FacesExtender implements RulesPluginUIInterface {
       '#maxlength' => 32,
       '#required' => TRUE,
       '#description' => t('The machine-readable name of this configuration is used by rules internally to identify the configuration. This name must contain only lowercase letters, numbers, and underscores and must be unique.'),
+      '#element_validate' => array('rules_ui_element_machine_name_validate'),
     );
     // Add the JS for machine name creation only during creation, so label
     // changes don't automatically lead to changed machine names.
@@ -369,14 +370,18 @@ class RulesPluginUI extends FacesExtender implements RulesPluginUIInterface {
       );
       $weight = 0;
       foreach ($this->element->componentVariables() as $name => $var_info) {
-        $form['settings']['vars'][$name] = RulesPluginUI::getVariableForm($name, $var_info);
-        $form['settings']['vars'][$name]['weight']['#default_value'] = $weight++;
+        $form['settings']['vars']['items'][$name] = RulesPluginUI::getVariableForm($name, $var_info);
+        $form['settings']['vars']['items'][$name]['weight']['#default_value'] = $weight++;
       }
       // Always add three empty forms.
       for ($i = 0; $i < 3; $i++) {
-        $form['settings']['vars'][$i] = RulesPluginUI::getVariableForm();
-        $form['settings']['vars'][$i]['weight']['#default_value'] = $weight++;
+        $form['settings']['vars']['items'][$i] = RulesPluginUI::getVariableForm();
+        $form['settings']['vars']['items'][$i]['weight']['#default_value'] = $weight++;
       }
+      $form['settings']['vars']['more'] = array(
+        '#type' => 'submit',
+        '#value' => t('Add more'),
+      );
     }
 
     // TODO: Attach field form thus description and tags.
@@ -395,10 +400,7 @@ class RulesPluginUI extends FacesExtender implements RulesPluginUIInterface {
   }
 
   public function settingsFormValidate($form, &$form_state) {
-    if (!preg_match('!^[a-z0-9_]+$!', $form_state['values']['name'])) {
-      form_set_error('name', t('The machine-readable name must contain only lowercase letters, numbers, and underscores.'));
-    }
-    elseif ($form['settings']['name']['#default_value'] != $form_state['values']['name'] && rules_config_load($this->element->name)) {
+    if ($form['settings']['name']['#default_value'] != $form_state['values']['name'] && rules_config_load($this->element->name)) {
       form_set_error('name', t('The machine-readable name %name is already taken.', array('%name' => $form_state['values']['name'])));
     }
 
@@ -445,6 +447,7 @@ class RulesPluginUI extends FacesExtender implements RulesPluginUIInterface {
       '#type' => 'textfield',
       '#size' => 40,
       '#default_value' => $name,
+      '#element_validate' => array('rules_ui_element_machine_name_validate'),
     );
     // Just set the weight #default_value for the returned form.
     $form['weight'] = array(

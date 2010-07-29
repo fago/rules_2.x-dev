@@ -68,8 +68,8 @@ function theme_rules_ui_variable_form($variables) {
   $table['#header'] = array(t('Data type'), t('Label'), t('Machine name'), array('data' => t('Weight'), 'class' => array('tabledrag-hide')));
   $table['#attributes']['id'] = 'rules-' . drupal_html_id($elements['#title']) . '-id';
 
-  foreach (element_children($elements) as $element_id) {
-    $element = &$elements[$element_id];
+  foreach (element_children($elements['items']) as $key) {
+    $element = &$elements['items'][$key];
     // Add special classes to be used for tabledrag.js.
     $element['weight']['#attributes']['class'] = array('rules-element-weight');
 
@@ -82,6 +82,7 @@ function theme_rules_ui_variable_form($variables) {
     $row['class'][] = 'draggable';
     $table['#rows'][] = $row;
   }
+  $elements['items']['#printed'] = TRUE;
   if (!empty($table['#rows'])) {
     drupal_add_tabledrag($table['#attributes']['id'], 'order', 'sibling', 'rules-element-weight');
   }
@@ -96,6 +97,10 @@ function theme_rules_ui_variable_form($variables) {
     $output .= ' <div class="description">' . $elements['#description'] . "</div>\n";
   }
   $output .= ' ' . drupal_render($table) . "\n";
+  // Add in any further children elements.
+  foreach (element_children($elements, TRUE) as $key) {
+    $output .= drupal_render($elements[$key]);
+  }
   $output .= "</div>\n";
   return $output;
 }

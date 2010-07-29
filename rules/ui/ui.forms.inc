@@ -595,3 +595,11 @@ function rules_ui_element_integer_list_validate($element, &$form_state) {
   }
 }
 
+/**
+ * FAPI callback to validate a machine readable name.
+ */
+function rules_ui_element_machine_name_validate($element, &$form_state) {
+  if ($element['#value'] && !preg_match('!^[a-z0-9_]+$!', $element['#value'])) {
+    form_error($element, t('Machine-readable names must contain only lowercase letters, numbers, and underscores.'));
+  }
+}
