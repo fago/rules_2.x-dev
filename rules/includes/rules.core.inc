@@ -743,9 +743,15 @@ abstract class RulesPlugin extends RulesExtendable {
 
   public function __sleep() {
     $this->processSettings();
-    $array = (isset($this->name)) ? array('name' => 'name') : array();
     // Keep the id always as we need it for the recursion prevention.
-    return $array + drupal_map_assoc(array('skipSetUp', 'parent', 'id', 'elementId', 'weight', 'settings'));
+    $array = drupal_map_assoc(array('skipSetUp', 'parent', 'id', 'elementId', 'weight', 'settings'));
+    // Keep properties related to configurations if they are there.
+    foreach (array('name', 'module', 'label') as $key) {
+      if (isset($this->$key)) {
+        $array[$key] = $key;
+      }
+    }
+    return $array;
   }
 
   /**

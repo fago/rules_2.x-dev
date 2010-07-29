@@ -312,7 +312,7 @@ class RulesPluginUI extends FacesExtender implements RulesPluginUIInterface {
       '#type' => 'fieldset',
       '#title' => t('Settings'),
       '#collapsible' => TRUE,
-      '#collapsed' => TRUE,
+      '#collapsed' => empty($form_state['values']['vars']['more']),
       '#weight' => 5,
     );
     $form['settings']['label'] = array(
@@ -330,7 +330,7 @@ class RulesPluginUI extends FacesExtender implements RulesPluginUIInterface {
     $form['settings']['name'] = array(
       '#title' => t('Machine name'),
       '#type' => 'textfield',
-      '#default_value' => isset($machine_name) ? $machine_name : $this->element->name,
+      '#default_value' => isset($machine_name) ? $machine_name : '',
       '#maxlength' => 32,
       '#required' => TRUE,
       '#description' => t('The machine-readable name of this configuration is used by rules internally to identify the configuration. This name must contain only lowercase letters, numbers, and underscores and must be unique.'),
@@ -382,6 +382,9 @@ class RulesPluginUI extends FacesExtender implements RulesPluginUIInterface {
       $form['settings']['vars']['more'] = array(
         '#type' => 'submit',
         '#value' => t('Add more'),
+        // Enable AJAX once #756762 is fixed.
+        // '#ajax' => rules_ui_form_default_ajax('none'),
+        '#submit' => array('rules_form_submit_rebuild'),
       );
     }
 
@@ -397,6 +400,19 @@ class RulesPluginUI extends FacesExtender implements RulesPluginUIInterface {
       $module = isset($this->element->module) ? $this->element->module : 'rules';
       $this->element->name = $module . '_' . $form_state['values']['name'];
       $form_state['redirect'] = RulesPluginUI::path($this->element->name);
+    }
+
+    if (isset($form_state['values']['vars']['items'])) {
+      $vars = &$this->element->componentVariables();
+      $vars = array();
+      usort($form_state['values']['vars']['items'], 'rules_element_sort_helper');
+      foreach ($form_state['values']['vars']['items'] as $item) {
+        if ($item['type']) {
+          $vars[$item['name']] = array('label' => $item['label'], 'type' => $item['type']);
+        }
+      }
+      // Disable FAPI persistence for the variable form so renumbering works.
+      unset($form_state['input']['vars']);
     }
   }
 
@@ -664,8 +680,6 @@ class RulesPluginUI extends FacesExtender implements RulesPluginUIInterface {
     $form['#attached']['js'][] = 'misc/collapse.js';
     // Add our own css.
     $form['#attached']['css'][] = drupal_get_path('module', 'rules') . '/ui/rules.ui.css';
-    // At element 'form' defaults as else added via system_element_info().
-    $form['#attached']['js']['misc/form.js'] = array('weight' => JS_LIBRARY + 1);
 
     // Specify the wrapper div used by #ajax.
     $form['#prefix'] = '<div id="rules-form-wrapper">';

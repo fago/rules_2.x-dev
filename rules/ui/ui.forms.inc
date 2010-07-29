@@ -625,3 +625,15 @@ function rules_ui_element_variable_form_validate($elements, &$form_state) {
     }
   }
 }
+
+/**
+ * Helper to sort elements by their 'weight' key.
+ */
+function rules_element_sort_helper($a, $b) {
+  $a += array('weight' => 0);
+  $b += array('weight' => 0);
+  if ($a['weight'] == $b['weight']) {
+    return 0;
+  }
+  return ($a['weight'] < $b['weight']) ? -1 : 1;
+}
