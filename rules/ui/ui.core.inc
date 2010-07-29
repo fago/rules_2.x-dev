@@ -384,6 +384,7 @@ class RulesPluginUI extends FacesExtender implements RulesPluginUIInterface {
         '#value' => t('Add more'),
         // Enable AJAX once #756762 is fixed.
         // '#ajax' => rules_ui_form_default_ajax('none'),
+        '#limit_validation_errors' => array(array('settings', 'vars')),
         '#submit' => array('rules_form_submit_rebuild'),
       );
     }
